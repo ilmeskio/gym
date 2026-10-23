@@ -14,6 +14,7 @@ import {
   moveToExercise,
   nextDay,
   removeSet,
+  removeWorkout,
   saveRepMax,
   setsOf,
   setStartDate,
@@ -239,5 +240,30 @@ describe('fromStorage', () => {
     const s = fromStorage(JSON.stringify(old));
     expect(s.plans).toEqual({});
     expect(s.preferences).toEqual({ planStarts: {}, videos: {} });
+  });
+});
+
+describe('removeWorkout', () => {
+  it('removes the workout with its sets and queues their deletion', () => {
+    let s = start(emptyState(), 'w1', 'A', '2026-10-23T18:00:00Z');
+    s = logSet(s, { id: 's1', workoutId: 'w1', exerciseId: 'squat', kg: 8, reps: 10, at: '2026-10-23T18:05:00Z' });
+    s = start(s, 'w2', 'B', '2026-10-24T18:00:00Z');
+    s = logSet(s, { id: 's2', workoutId: 'w2', exerciseId: 'trx', kg: 0, reps: 12, at: '2026-10-24T18:05:00Z' });
+    s = [
+      { table: 'workouts', key: 'w1' },
+      { table: 'sets', key: 's1' },
+      { table: 'workouts', key: 'w2' },
+      { table: 'sets', key: 's2' },
+    ].reduce((state, entry) => confirmSent(state, entry as { table: 'workouts' | 'sets'; key: string }), s);
+
+    s = removeWorkout(s, 'w1');
+
+    expect(Object.keys(s.workouts)).toEqual(['w2']);
+    expect(Object.keys(s.sets)).toEqual(['s2']);
+    expect(s.outbox).toEqual([
+      { table: 'sets', key: 's1' },
+      { table: 'workouts', key: 'w1' },
+    ]);
+    expect(removeWorkout(s, 'missing')).toBe(s);
   });
 });

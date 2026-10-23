@@ -183,7 +183,16 @@ function Content() {
       const donePlan = done && planOf(done);
       if (!done || !donePlan) return null;
       return (
-        <WorkoutDetail plan={donePlan} state={state} workout={done} onBack={() => setScreen({ name: 'history' })} />
+        <WorkoutDetail
+          plan={donePlan}
+          state={state}
+          workout={done}
+          onBack={() => setScreen({ name: 'history' })}
+          onDelete={() => {
+            data.removeWorkout(done.id);
+            setScreen({ name: 'history' });
+          }}
+        />
       );
     }
 
@@ -216,6 +225,7 @@ function Content() {
           }}
           onChoose={(dayId) => setScreen({ name: 'preview', dayId })}
           onResume={() => inProgress && setScreen({ name: 'workout', id: inProgress.id })}
+          onCancel={() => inProgress && data.removeWorkout(inProgress.id)}
           onHistory={() => setScreen({ name: 'history' })}
           onFullPlan={() => setScreen({ name: 'fullPlan' })}
           onSignOut={() => supabase.auth.signOut()}

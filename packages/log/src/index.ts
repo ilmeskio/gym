@@ -187,6 +187,16 @@ export function removeSet(state: State, id: string): State {
   return { ...state, sets, outbox: enqueue(state, 'sets', id) };
 }
 
+/** Removes a workout with its sets; rep maxes found in it stay, they are still the user's. */
+export function removeWorkout(state: State, id: string): State {
+  if (!state.workouts[id]) return state;
+  const removed = Object.values(state.sets).filter((x) => x.workoutId === id);
+  let next = state;
+  for (const set of removed) next = removeSet(next, set.id);
+  const { [id]: _removed, ...workouts } = next.workouts;
+  return { ...next, workouts, outbox: enqueue(next, 'workouts', id) };
+}
+
 export function saveRepMax(
   state: State,
   { at, ...repMax }: { exerciseId: string; reps: number; kg: number; workoutId?: string; at: string },

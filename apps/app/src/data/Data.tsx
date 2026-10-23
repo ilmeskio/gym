@@ -26,6 +26,7 @@ type Value = {
   logSet: (set: { workoutId: string; exerciseId: string; kg: number; reps: number }) => void;
   editSet: (id: string, change: { kg: number; reps: number }) => void;
   removeSet: (id: string) => void;
+  removeWorkout: (id: string) => void;
   saveRepMax: (repMax: { exerciseId: string; reps: number; kg: number; workoutId?: string }) => void;
   finishWorkout: (id: string, feedback: L.Feedback) => void;
   setStartDate: (planId: string, startDate: string) => void;
@@ -152,6 +153,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       logSet: (set) => setState((s) => L.logSet(s, { ...set, id: Crypto.randomUUID(), at: now() })),
       editSet: (id, change) => setState((s) => L.editSet(s, id, change)),
       removeSet: (id) => setState((s) => L.removeSet(s, id)),
+      removeWorkout: (id) => setState((s) => L.removeWorkout(s, id)),
       saveRepMax: (repMax) => setState((s) => L.saveRepMax(s, { ...repMax, at: now() })),
       finishWorkout: (id, feedback) =>
         setState((s) => {
