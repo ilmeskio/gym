@@ -2,22 +2,26 @@ import { lastTime, setsOf } from '@gymapp/log';
 import {
   demos,
   kgFromPlan,
+  PREPARE_SECONDS,
   repMaxAdvice,
   youtubeId,
   youtubeSearch,
   type Exercise as PlanExercise,
+  type Phase,
   type Step,
   type Target,
 } from '@gymapp/plan';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../components/Button';
+import { Countdown } from '../components/Countdown';
 import { Demo } from '../components/Demo';
 import { ExerciseVideo } from '../components/ExerciseVideo';
 import { describeSet, SetRow, type Unit } from '../components/SetRow';
 import { Stepper } from '../components/Stepper';
 import { useData } from '../data/Data';
 import { kg as formatKg, shortDate } from '../format';
+import { unlockSignals } from '../signal';
 import { colors, space } from '../theme';
 
 type Props = {
@@ -30,8 +34,6 @@ type Props = {
   onPrevious?: () => void;
   onExit: () => void;
 };
-
-const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
 function describeTarget(t: Target) {
   if (t.kind === 'max') return 'al massimo';
@@ -53,7 +55,8 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const done = setsOf(data.state, workoutId, exercise.id);
   const previous = lastTime(data.state, workoutId, exercise.id);
   const repMax = data.state.repMaxes[exercise.id];
-  const [rest, setRest] = useState<number>();
+  // A timed hold (preparation, then the seconds) or the rest after a set.
+  const [timer, setTimer] = useState<{ kind: 'hold' | 'rest'; phases: Phase[] }>();
 
   const totalSets = findRepMax ? undefined : sets.sets?.max;
   const unit: Unit = sets.target?.kind === 'seconds' ? 'seconds' : 'reps';
@@ -72,32 +75,42 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const currentKg = chosenKg ?? proposedKg;
   const currentReps = chosenReps ?? proposedReps;
 
-  useEffect(() => {
-    if (rest === undefined) return;
-    if (rest <= 0) {
-      setRest(undefined);
-      return;
-    }
-    const timer = setTimeout(() => setRest(rest - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [rest]);
-
   const saveRepMax = (kg: number) =>
     findRepMax && data.saveRepMax({ exerciseId: exercise.id, reps: findRepMax, kg, workoutId });
 
-  function logSet() {
-    const next = { kg: currentKg, reps: currentReps };
+  function logSet(reps = currentReps) {
+    unlockSignals();
+    const next = { kg: currentKg, reps };
     data.logSet({ workoutId, exerciseId: exercise.id, ...next });
     setChosenReps(undefined);
     const found = findRepMax !== undefined && repMaxAdvice(findRepMax, next.reps) === 'found';
     if (found) saveRepMax(next.kg);
     const more = findRepMax ? !found : totalSets !== undefined && done.length + 1 < totalSets;
-    if (more && step.restSeconds && !noRest) setRest(step.restSeconds);
+    if (more && step.restSeconds && !noRest)
+      setTimer({ kind: 'rest', phases: [{ kind: 'rest', seconds: step.restSeconds }] });
+    else setTimer(undefined);
+  }
+
+  function startHold() {
+    unlockSignals();
+    setTimer({
+      kind: 'hold',
+      phases: [
+        { kind: 'prepare', seconds: PREPARE_SECONDS },
+        { kind: 'work', seconds: currentReps },
+      ],
+    });
+  }
+
+  /** A hold stopped or finished: the seconds done become the set. */
+  function endHold(worked: number) {
+    if (worked > 0) logSet(worked);
+    else setTimer(undefined);
   }
 
   function undoLast() {
     if (last) data.removeSet(last.id);
-    setRest(undefined);
+    setTimer(undefined);
   }
 
   let planLoad = p.load;
@@ -196,7 +209,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
           </View>
         ) : null}
 
-        {toLog && rest === undefined ? (
+        {toLog && !timer ? (
           <View style={{ gap: space(3) }}>
             <View style={styles.fields}>
               <View style={styles.group}>
@@ -212,11 +225,15 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
                 />
               </View>
             </View>
+            {unit === 'seconds' && !noRest ? (
+              <Button title={`Avvia ${currentReps}" (5" per prepararti)`} onPress={startHold} />
+            ) : null}
             <Button
               title={
                 totalSets ? `Registra serie ${done.length + 1} di ${totalSets}` : `Registra serie ${done.length + 1}`
               }
-              onPress={logSet}
+              variant={unit === 'seconds' && !noRest ? 'outline' : 'solid'}
+              onPress={() => logSet()}
             />
             {findRepMax && last ? (
               <Button
@@ -235,12 +252,14 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
         ) : null}
       </View>
 
-      {rest !== undefined ? (
-        <View style={styles.rest}>
-          <Text style={styles.muted}>Recupero</Text>
-          <Text style={styles.timer}>{clock(rest)}</Text>
-          <Button title="Salta recupero" variant="outline" onPress={() => setRest(undefined)} />
-        </View>
+      {timer?.kind === 'hold' ? (
+        <Countdown phases={timer.phases} onDone={endHold} stop={{ title: 'Stop', onStop: endHold }} />
+      ) : timer?.kind === 'rest' ? (
+        <Countdown
+          phases={timer.phases}
+          onDone={() => setTimer(undefined)}
+          stop={{ title: 'Salta recupero', onStop: () => setTimer(undefined) }}
+        />
       ) : finished ? (
         <Button title={step.position === step.total ? 'Fine allenamento' : 'Prossimo esercizio'} onPress={onNext} />
       ) : null}
@@ -373,7 +392,5 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: space(2), justifyContent: 'center' },
   dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: colors.accent },
   dotDone: { backgroundColor: colors.accent },
-  rest: { alignItems: 'center', gap: space(2), backgroundColor: colors.surface, borderRadius: 12, padding: space(4) },
-  timer: { color: colors.text, fontSize: 56, fontWeight: '700', fontVariant: ['tabular-nums'] },
   navigation: { flexDirection: 'row', gap: space(3) },
 });
