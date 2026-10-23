@@ -6,11 +6,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SetForm, SetRow, type Unit } from '../components/SetRow';
 import { useData } from '../data/Data';
 import { duration, EFFORT, longDay, time } from '../format';
+import { ConfirmAction } from '../components/ConfirmAction';
 import { colors, space } from '../theme';
 
-type Props = { plan: Plan; state: State; workout: Workout; onBack: () => void };
+type Props = { plan: Plan; state: State; workout: Workout; onBack: () => void; onDelete: () => void };
 
-export function WorkoutDetail({ plan, state, workout: w, onBack }: Props) {
+export function WorkoutDetail({ plan, state, workout: w, onBack, onDelete }: Props) {
   const day = plan.days.find((d) => d.id === w.dayId);
   const sets = setsOf(state, w.id);
   // Every exercise of the day in plan order, then those with sets that the plan no longer has.
@@ -92,6 +93,12 @@ export function WorkoutDetail({ plan, state, workout: w, onBack }: Props) {
           </View>
         );
       })}
+      <ConfirmAction
+        title="Elimina allenamento"
+        question="L'allenamento e tutte le sue serie vengono cancellati, anche dal server."
+        confirm="Sì, eliminalo"
+        onConfirm={onDelete}
+      />
     </ScrollView>
   );
 }

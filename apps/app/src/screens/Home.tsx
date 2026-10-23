@@ -2,6 +2,7 @@ import type { Workout } from '@gymapp/log';
 import type { Plan } from '@gymapp/plan';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
+import { ConfirmAction } from '../components/ConfirmAction';
 import type { SyncStatus } from '../data/Data';
 import { longDay, shortDate, time } from '../format';
 import { colors, space } from '../theme';
@@ -19,6 +20,7 @@ type Props = {
   onRestart: () => void;
   onChoose: (dayId: string) => void;
   onResume: () => void;
+  onCancel: () => void;
   onHistory: () => void;
   onFullPlan: () => void;
   onSignOut: () => void;
@@ -59,6 +61,12 @@ export function Home(props: Props) {
             {inProgress.loggedLater ? longDay(inProgress.startedAt) : `iniziato alle ${time(inProgress.startedAt)}`}
           </Text>
           <Button title="Riprendi" onPress={props.onResume} />
+          <ConfirmAction
+            title="Annulla allenamento"
+            question="L'allenamento e le serie registrate finora vengono cancellati, anche dal server."
+            confirm="Sì, annullalo"
+            onConfirm={props.onCancel}
+          />
         </View>
       ) : null}
 
