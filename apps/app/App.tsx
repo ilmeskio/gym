@@ -1,4 +1,4 @@
-import { activePlan, nextDay, setsOf, workoutInProgress, type StoredPlan, type Workout } from '@gymapp/log';
+import { activePlan, lastTime, nextDay, setsOf, workoutInProgress, type StoredPlan, type Workout } from '@gymapp/log';
 import { currentWeek, session, todayDate, type Plan } from '@gymapp/plan';
 import exampleData from '@gymapp/plan/data/example.json';
 import { StatusBar } from 'expo-status-bar';
@@ -101,6 +101,7 @@ function Content() {
           week={week}
           steps={session(plan, screen.dayId, week)}
           inProgressWarning={!!inProgress}
+          lastSets={(exerciseId) => lastTime(state, '', exerciseId)?.sets}
           onBack={goHome}
           onStart={() => {
             if (!startDate) setStart(todayDate());

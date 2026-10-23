@@ -163,6 +163,16 @@ export function session(plan: Plan, dayId: string, week: number): Step[] {
   });
 }
 
+/** What else a step asks besides sets and load, in words to show before starting. */
+export function stepDetails({ prescription: p, exercise }: Step): string[] {
+  return [
+    p.rest && `recupero ${p.rest.trim()}`,
+    p.tut && `TUT ${p.tut.trim()}`,
+    p.rir && `RIR ${p.rir.trim()}`,
+    exercise.notes?.trim(),
+  ].filter((d): d is string => !!d);
+}
+
 /** The current week (1-based), counting from the start date (`YYYY-MM-DD`). */
 export function currentWeek(startDate: string | undefined, today: Date, weekCount: number): number {
   if (!startDate) return 1;
