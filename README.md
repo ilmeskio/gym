@@ -124,6 +124,11 @@ un'altra settimana.
 - Un carico "trova N rm", e il "limitati a questo" che lo accompagna, valgono solo nella
   settimana in cui compaiono: dopo vale il carico trovato.
 - Un recupero scritto come numero (`2`) è in minuti.
+- Le serie a tempo (`3x30"`) hanno un timer: 5" per prepararsi, poi i secondi, con i bip a 3-2-1.
+  Una tenuta che segue ogni serie, come in un superset (`3x20/30"+20" a lato side plank`), continua
+  nello stesso timer, un lato alla volta se è scritto "a lato" o "per lato".
+- I giri contro il tempo (`5 rep ogni 30" x 4 min`) hanno un timer che segnala l'inizio di ogni
+  giro; le ripetizioni dei giri fatti diventano una serie.
 
 ## Pubblicazione
 

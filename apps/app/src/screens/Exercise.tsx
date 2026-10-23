@@ -1,8 +1,9 @@
 import { lastTime, setsOf } from '@gymapp/log';
 import {
   demos,
+  holdPhases,
+  intervalPhases,
   kgFromPlan,
-  PREPARE_SECONDS,
   repMaxAdvice,
   youtubeId,
   youtubeSearch,
@@ -14,7 +15,7 @@ import {
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../components/Button';
-import { Countdown } from '../components/Countdown';
+import { Countdown, type Progress } from '../components/Countdown';
 import { Demo } from '../components/Demo';
 import { ExerciseVideo } from '../components/ExerciseVideo';
 import { describeSet, SetRow, type Unit } from '../components/SetRow';
@@ -55,8 +56,8 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const done = setsOf(data.state, workoutId, exercise.id);
   const previous = lastTime(data.state, workoutId, exercise.id);
   const repMax = data.state.repMaxes[exercise.id];
-  // A timed hold (preparation, then the seconds) or the rest after a set.
-  const [timer, setTimer] = useState<{ kind: 'hold' | 'rest'; phases: Phase[] }>();
+  // A timed hold (preparation, then the seconds), rounds against the clock, or the rest after a set.
+  const [timer, setTimer] = useState<{ kind: 'hold' | 'rounds' | 'rest'; phases: Phase[] }>();
 
   const totalSets = findRepMax ? undefined : sets.sets?.max;
   const unit: Unit = sets.target?.kind === 'seconds' ? 'seconds' : 'reps';
@@ -93,18 +94,23 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
 
   function startHold() {
     unlockSignals();
-    setTimer({
-      kind: 'hold',
-      phases: [
-        { kind: 'prepare', seconds: PREPARE_SECONDS },
-        { kind: 'work', seconds: currentReps },
-      ],
-    });
+    setTimer({ kind: 'hold', phases: holdPhases(sets, currentReps) });
   }
 
   /** A hold stopped or finished: the seconds done become the set. */
-  function endHold(worked: number) {
+  function endHold({ worked }: Progress) {
     if (worked > 0) logSet(worked);
+    else setTimer(undefined);
+  }
+
+  function startRounds() {
+    unlockSignals();
+    if (sets.intervals) setTimer({ kind: 'rounds', phases: intervalPhases(sets.intervals) });
+  }
+
+  /** Rounds stopped or finished: the reps of the rounds done become one set. */
+  function endRounds({ rounds }: Progress) {
+    if (rounds > 0 && sets.intervals) logSet(rounds * sets.intervals.reps);
     else setTimer(undefined);
   }
 
@@ -228,11 +234,17 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
             {unit === 'seconds' && !noRest ? (
               <Button title={`Avvia ${currentReps}" (5" per prepararti)`} onPress={startHold} />
             ) : null}
+            {sets.intervals && !noRest ? (
+              <Button
+                title={`Avvia ${sets.intervals.minutes}' a giri da ${sets.intervals.every}" (5" per prepararti)`}
+                onPress={startRounds}
+              />
+            ) : null}
             <Button
               title={
                 totalSets ? `Registra serie ${done.length + 1} di ${totalSets}` : `Registra serie ${done.length + 1}`
               }
-              variant={unit === 'seconds' && !noRest ? 'outline' : 'solid'}
+              variant={(unit === 'seconds' || sets.intervals) && !noRest ? 'outline' : 'solid'}
               onPress={() => logSet()}
             />
             {findRepMax && last ? (
@@ -254,6 +266,8 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
 
       {timer?.kind === 'hold' ? (
         <Countdown phases={timer.phases} onDone={endHold} stop={{ title: 'Stop', onStop: endHold }} />
+      ) : timer?.kind === 'rounds' ? (
+        <Countdown phases={timer.phases} onDone={endRounds} stop={{ title: 'Stop', onStop: endRounds }} />
       ) : timer?.kind === 'rest' ? (
         <Countdown
           phases={timer.phases}

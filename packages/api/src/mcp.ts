@@ -18,6 +18,8 @@ const prescription = z
     ),
     setsReps: note(200).describe(
       'Sets x reps: "3x10", "3x8/10" (rep range), "3/4x10" (set range), "3x30\\"" (seconds), "2xmax". ' +
+        'A hold done after each set, as in a superset: "3x20/30\\"+20\\" a lato side plank" (per side, timed). ' +
+        'Rounds against the clock: "5 rep ogni 30\\" x 4 min". Write each week in full, not "uguale 5min". ' +
         'Text after it stays as a note. "limitati a questo" goes with a "trova N rm" load.',
     ),
     rest: note(20).describe('Rest between sets: "1\'30", "2\'", "40\\"". The app runs a timer.'),

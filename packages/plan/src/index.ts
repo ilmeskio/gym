@@ -3,6 +3,7 @@
 // the functions below extract only what the app needs (sets, target, rest).
 
 import type { ExerciseMedia } from './media.ts';
+import { PREPARE_SECONDS, type Phase } from './timer.ts';
 
 export type Prescription = {
   load?: string;
@@ -38,7 +39,13 @@ export type Range = { min: number; max: number };
 
 export type Target = ({ kind: 'reps' } & Range) | ({ kind: 'seconds' } & Range) | { kind: 'max' };
 
-export type SetsReading = { sets?: Range; target?: Target; note?: string };
+/** A timed hold done straight after each set, as in a superset: `+20" a lato side plank`. */
+export type ThenHold = { seconds: number; perSide: boolean; name?: string };
+
+/** Rounds against the clock: `reps` every `every` seconds, for `minutes`. */
+export type Intervals = { reps: number; every: number; minutes: number };
+
+export type SetsReading = { sets?: Range; target?: Target; note?: string; then?: ThenHold; intervals?: Intervals };
 
 const range = (min: string, max?: string): Range => ({
   min: Number(min),
@@ -46,18 +53,57 @@ const range = (min: string, max?: string): Range => ({
 });
 
 const SETS = /^(\d+)(?:\/(\d+))?\s*x\s*(?:(max)|(\d+)(?:\/(\d+))?\s*(")?)/i;
+const THEN_HOLD = /^\+\s*(\d+)\s*"\s*(a lato|per lato)?\s*(.*)$/i;
+const INTERVALS = /^(\d+)\s*rep\w*\s+ogni\s+(\d+)\s*"\s*x\s*(\d+)\s*min/i;
 
 export function readSets(text: string | undefined): SetsReading {
   const clean = text?.trim();
   if (!clean) return {};
   const m = SETS.exec(clean);
-  if (!m) return { note: clean };
+  if (!m) {
+    const i = INTERVALS.exec(clean);
+    return i
+      ? { note: clean, intervals: { reps: Number(i[1]), every: Number(i[2]), minutes: Number(i[3]) } }
+      : { note: clean };
+  }
   const [whole, setsMin, setsMax, max, repsMin, repsMax, seconds] = m;
   const target: Target = max ? { kind: 'max' } : { kind: seconds ? 'seconds' : 'reps', ...range(repsMin, repsMax) };
   const reading: SetsReading = { sets: range(setsMin, setsMax), target };
   const note = clean.slice(whole.length).trim();
   if (note) reading.note = note;
+  const then = THEN_HOLD.exec(note);
+  if (then) reading.then = { seconds: Number(then[1]), perSide: !!then[2], ...(then[3] && { name: then[3] }) };
   return reading;
+}
+
+const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** The timer of a timed set: preparation, the hold, then the hold that follows it in a superset. */
+export function holdPhases({ then }: SetsReading, seconds: number): Phase[] {
+  const phases: Phase[] = [
+    { kind: 'prepare', seconds: PREPARE_SECONDS },
+    { kind: 'work', seconds },
+  ];
+  if (!then) return phases;
+  const name = capitalized(then.name ?? 'secondo esercizio');
+  const labels = then.perSide ? [`${name}, lato destro`, `${name}, lato sinistro`] : [name];
+  for (const label of labels) {
+    phases.push({ kind: 'prepare', seconds: PREPARE_SECONDS, label }, { kind: 'work', seconds: then.seconds, label });
+  }
+  return phases;
+}
+
+/** The timer of rounds against the clock: preparation, then one phase per round. */
+export function intervalPhases({ reps, every, minutes }: Intervals): Phase[] {
+  const rounds = Math.floor((minutes * 60) / every);
+  return [
+    { kind: 'prepare', seconds: PREPARE_SECONDS },
+    ...Array.from({ length: rounds }, (_, i): Phase => ({
+      kind: 'work',
+      seconds: every,
+      label: `Giro ${i + 1} di ${rounds}: ${reps} ripetizioni`,
+    })),
+  ];
 }
 
 const REST = /^(?:(\d+)')?\s*(?:(\d+)"?)?$/;
@@ -223,9 +269,10 @@ export function planProblems(plan: Plan): PlanProblems {
       exercise.weeks.forEach((week, i) => {
         const where = `"${name}", settimana ${i + 1}`;
         const sets = week.setsReps?.trim();
-        if (sets && !readSets(sets).sets && !THAT_WEEK_ONLY.setsReps?.test(sets)) {
+        const reading = readSets(sets);
+        if (sets && !reading.sets && !reading.intervals && !THAT_WEEK_ONLY.setsReps?.test(sets)) {
           warnings.push(
-            `${where}: "${sets}" non indica serie e ripetizioni (es. 3x10, 3x8/10, 3x30", 2xmax): l'app la mostra come nota e non conta le serie.`,
+            `${where}: "${sets}" non indica serie e ripetizioni (es. 3x10, 3x8/10, 3x30", 2xmax, 5 rep ogni 30" x 4 min): l'app la mostra come nota e non conta le serie.`,
           );
         }
         if (week.rest?.trim() && readRest(week.rest) === undefined) {
