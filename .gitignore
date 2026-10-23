@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.expo/
+*.xlsx
+.DS_Store
+.playwright-mcp/

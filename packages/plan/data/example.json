@@ -1,0 +1,249 @@
+{
+  "title": "Scheda d'esempio",
+  "startDate": "2026-10-01",
+  "weekCount": 4,
+  "days": [
+    {
+      "id": "A",
+      "title": "Giorno A · gambe e spinta",
+      "exercises": [
+        {
+          "id": "plank",
+          "name": "plank sui gomiti",
+          "media": {
+            "gif": [
+              {
+                "id": "VBAWRPG",
+                "name": "front plank"
+              }
+            ],
+            "photos": [
+              "Plank"
+            ]
+          },
+          "weeks": [
+            {
+              "setsReps": "3x20/30\"",
+              "rest": "1'"
+            },
+            {},
+            {
+              "setsReps": "3x30/40\""
+            },
+            {}
+          ]
+        },
+        {
+          "id": "squat-manubrio",
+          "name": "squat con manubrio",
+          "media": {
+            "gif": [
+              {
+                "id": "HsvHqgf",
+                "name": "dumbbell squat"
+              }
+            ],
+            "photos": [
+              "Dumbbell_Squat"
+            ]
+          },
+          "weeks": [
+            {
+              "load": "8 kg",
+              "setsReps": "3x10/12",
+              "rest": "1'30",
+              "rir": "2"
+            },
+            {
+              "load": "10 kg"
+            },
+            {
+              "setsReps": "4x8/10"
+            },
+            {
+              "load": "12 kg"
+            }
+          ]
+        },
+        {
+          "id": "panca-manubri",
+          "name": "spinte manubri panca piana",
+          "media": {
+            "gif": [
+              {
+                "id": "SpYC0Kp",
+                "name": "dumbbell bench press"
+              }
+            ],
+            "photos": [
+              "Dumbbell_Bench_Press"
+            ]
+          },
+          "weeks": [
+            {
+              "load": "trova 12 rm",
+              "setsReps": "limitati a questo",
+              "rest": "2'"
+            },
+            {
+              "setsReps": "3x10/12"
+            },
+            {},
+            {
+              "setsReps": "4x8/10"
+            }
+          ],
+          "notes": "scapole addotte, piedi a terra"
+        },
+        {
+          "id": "alzate-laterali",
+          "name": "alzate laterali manubri",
+          "media": {
+            "gif": [
+              {
+                "id": "DsgkuIt",
+                "name": "dumbbell lateral raise"
+              }
+            ],
+            "photos": [
+              "Side_Lateral_Raise"
+            ]
+          },
+          "weeks": [
+            {
+              "load": "4 kg",
+              "setsReps": "3x12/15",
+              "rest": "1'"
+            },
+            {},
+            {
+              "load": "5 kg"
+            },
+            {}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "title": "Giorno B · tirata",
+      "exercises": [
+        {
+          "id": "lat-machine",
+          "name": "lat machine presa prona",
+          "media": {
+            "gif": [
+              {
+                "id": "eYnzaCm",
+                "name": "cable bar lateral pulldown"
+              }
+            ],
+            "photos": [
+              "Wide-Grip_Lat_Pulldown"
+            ]
+          },
+          "weeks": [
+            {
+              "load": "30 kg",
+              "setsReps": "3x10/12",
+              "rest": "1'30",
+              "tut": "2-0-2"
+            },
+            {},
+            {
+              "load": "35 kg"
+            },
+            {
+              "setsReps": "4x8/10"
+            }
+          ]
+        },
+        {
+          "id": "rematore",
+          "name": "rematore manubrio singolo",
+          "media": {
+            "gif": [
+              {
+                "id": "C0MA9bC",
+                "name": "dumbbell single-arm row"
+              }
+            ],
+            "photos": [
+              "One-Arm_Dumbbell_Row"
+            ]
+          },
+          "weeks": [
+            {
+              "load": "12 kg",
+              "setsReps": "3x10",
+              "rest": "1'30"
+            },
+            {},
+            {
+              "load": "14 kg"
+            },
+            {}
+          ]
+        },
+        {
+          "id": "curl-martello-pushdown",
+          "name": "curl martello in super set con push down al cavo",
+          "media": {
+            "gif": [
+              {
+                "id": "2NpxjC1",
+                "name": "dumbbell hammer curl"
+              },
+              {
+                "id": "dU605di",
+                "name": "cable pushdown (rope)"
+              }
+            ],
+            "photos": [
+              "Hammer_Curls",
+              "Triceps_Pushdown_-_Rope_Attachment"
+            ]
+          },
+          "weeks": [
+            {
+              "load": "8 kg",
+              "setsReps": "3x12 + 12",
+              "rest": "1'30"
+            },
+            {},
+            {
+              "load": "10 kg"
+            },
+            {}
+          ]
+        },
+        {
+          "id": "crunch-palla",
+          "name": "crunch su palla",
+          "media": {
+            "gif": [
+              {
+                "id": "MCUhf1F",
+                "name": "crunch (on stability ball)"
+              }
+            ],
+            "photos": [
+              "Exercise_Ball_Crunch"
+            ]
+          },
+          "weeks": [
+            {
+              "setsReps": "3x15",
+              "rest": "45\""
+            },
+            {},
+            {
+              "setsReps": "3x20"
+            },
+            {}
+          ]
+        }
+      ]
+    }
+  ]
+}

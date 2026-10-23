@@ -1,0 +1,289 @@
+import { describe, expect, it } from 'vitest';
+import {
+  currentWeek,
+  demos,
+  kgFromPlan,
+  planProblems,
+  prescription,
+  readRepMaxSearch,
+  readRest,
+  readSets,
+  repMaxAdvice,
+  session,
+  youtubeId,
+} from './index.ts';
+import type { Plan } from './index.ts';
+
+describe('readSets', () => {
+  it('reads sets and a rep range', () => {
+    expect(readSets('3x8/10')).toEqual({
+      sets: { min: 3, max: 3 },
+      target: { kind: 'reps', min: 8, max: 10 },
+    });
+  });
+
+  it('reads an isometric hold in seconds', () => {
+    expect(readSets('3x20/30"')).toEqual({
+      sets: { min: 3, max: 3 },
+      target: { kind: 'seconds', min: 20, max: 30 },
+    });
+  });
+
+  it('reads a range of sets', () => {
+    expect(readSets('3/4x5/8 ')).toEqual({
+      sets: { min: 3, max: 4 },
+      target: { kind: 'reps', min: 5, max: 8 },
+    });
+  });
+
+  it('reads sets to failure and keeps the rest as a note', () => {
+    expect(readSets('1xmax 2 x metà rep prima serie')).toEqual({
+      sets: { min: 1, max: 1 },
+      target: { kind: 'max' },
+      note: '2 x metà rep prima serie',
+    });
+  });
+
+  it('keeps the second half of a superset as a note', () => {
+    expect(readSets('3x8/12+8/12')).toEqual({
+      sets: { min: 3, max: 3 },
+      target: { kind: 'reps', min: 8, max: 12 },
+      note: '+8/12',
+    });
+  });
+
+  it('leaves free text as a note', () => {
+    expect(readSets('5 rep ogni 30" x 4 min')).toEqual({ note: '5 rep ogni 30" x 4 min' });
+    expect(readSets(undefined)).toEqual({});
+  });
+});
+
+describe('readRest', () => {
+  it('converts minutes and seconds into seconds', () => {
+    expect(readRest("1'30")).toBe(90);
+    expect(readRest("2'")).toBe(120);
+    expect(readRest('40"')).toBe(40);
+    expect(readRest(undefined)).toBeUndefined();
+    expect(readRest('a piacere')).toBeUndefined();
+  });
+});
+
+const plan: Plan = {
+  title: 'Test',
+  startDate: '2026-09-27',
+  weekCount: 3,
+  days: [
+    {
+      id: 'A',
+      title: 'Giorno A',
+      exercises: [
+        {
+          id: 'squat',
+          name: 'Squat',
+          weeks: [{ load: '8 kg', setsReps: '3x8/10', rest: "1'30" }, { setsReps: '4x8/10' }, {}],
+        },
+        {
+          id: 'raises',
+          name: 'Alzate laterali',
+          weeks: [{ load: 'trova 12 rm', setsReps: 'limitati a questo' }, { setsReps: '3x10/12' }, {}],
+        },
+      ],
+    },
+  ],
+};
+
+describe('prescription', () => {
+  it('fills empty fields from the previous week', () => {
+    expect(prescription(plan.days[0].exercises[0], 3)).toEqual({
+      load: '8 kg',
+      setsReps: '4x8/10',
+      rest: "1'30",
+    });
+  });
+
+  it('does not carry over the load search nor the "limitati a questo" that goes with it', () => {
+    const lat = {
+      id: 'lat',
+      name: 'Lat machine',
+      weeks: [{ load: 'trova 10 rm', setsReps: 'limitati a questo', rest: "1'30" }, {}],
+    };
+    expect(prescription(lat, 2)).toEqual({ rest: "1'30" });
+  });
+
+  it('does not carry over a load to be found', () => {
+    expect(prescription(plan.days[0].exercises[1], 2)).toEqual({ setsReps: '3x10/12' });
+  });
+});
+
+describe('session', () => {
+  it("lines up the day's exercises with the week's prescription", () => {
+    const steps = session(plan, 'A', 2);
+    expect(steps.map((s) => [s.exercise.id, s.position, s.total])).toEqual([
+      ['squat', 1, 2],
+      ['raises', 2, 2],
+    ]);
+    expect(steps[0].sets.sets).toEqual({ min: 4, max: 4 });
+    expect(steps[0].restSeconds).toBe(90);
+  });
+
+  it('rejects a missing day or week', () => {
+    expect(() => session(plan, 'Z', 1)).toThrow();
+    expect(() => session(plan, 'A', 4)).toThrow();
+  });
+});
+
+describe('youtubeId', () => {
+  it('recognises the common link formats', () => {
+    expect(youtubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10')).toBe('dQw4w9WgXcQ');
+    expect(youtubeId('https://youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(youtubeId('https://youtube.com/shorts/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(youtubeId('dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    expect(youtubeId('non è un link')).toBeUndefined();
+  });
+});
+
+describe('readRepMaxSearch', () => {
+  it('recognises the variants of "trova N rm"', () => {
+    expect(readRepMaxSearch('trova 12 rm( ovvero carico max 12 rep)')).toBe(12);
+    expect(readRepMaxSearch('trova 15rm')).toBe(15);
+    expect(readRepMaxSearch('trova 12rm entrambi')).toBe(12);
+    expect(readRepMaxSearch('troviamo resistenza')).toBeUndefined();
+    expect(readRepMaxSearch('8 kg')).toBeUndefined();
+    expect(readRepMaxSearch(undefined)).toBeUndefined();
+  });
+});
+
+describe('repMaxAdvice', () => {
+  it('says whether to go up, go down, or that the load is found', () => {
+    expect(repMaxAdvice(12, 15)).toBe('increase');
+    expect(repMaxAdvice(12, 12)).toBe('found');
+    expect(repMaxAdvice(12, 9)).toBe('decrease');
+  });
+});
+
+describe('session with a load to find', () => {
+  it('asks to find the load in the first week', () => {
+    const [, raises] = session(plan, 'A', 1);
+    expect(raises.findRepMax).toBe(12);
+    expect(raises.useRepMax).toBeUndefined();
+  });
+
+  it('uses the load found in the following weeks', () => {
+    const [squat, raises] = session(plan, 'A', 2);
+    expect(raises.findRepMax).toBeUndefined();
+    expect(raises.useRepMax).toBe(12);
+    expect(squat.useRepMax).toBeUndefined();
+  });
+});
+
+describe('demos', () => {
+  const catalog = {
+    superset: {
+      search: 'superset',
+      gif: [{ id: 'abc1234', name: 'dumbbell hammer curl' }],
+      photos: ['Hammer_Curls', 'Triceps_Pushdown_-_Rope_Attachment'],
+    },
+    photosOnly: { search: 'photos', photos: ['Plank'] },
+  };
+
+  it('prefers the ExerciseDB GIFs', () => {
+    expect(demos(catalog.superset)).toEqual([
+      { kind: 'gif', name: 'dumbbell hammer curl', frames: ['https://static.exercisedb.dev/media/abc1234.gif'] },
+    ]);
+  });
+
+  it('otherwise alternates start and end photos, one per part of a superset', () => {
+    expect(demos(catalog.photosOnly)).toEqual([
+      {
+        kind: 'photo',
+        name: 'Plank',
+        frames: [
+          'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/0.jpg',
+          'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plank/1.jpg',
+        ],
+      },
+    ]);
+    expect(demos(undefined)).toEqual([]);
+  });
+
+  it('falls back to photos when GIFs cannot be used', () => {
+    expect(demos(catalog.superset, false).map((d) => [d.kind, d.name])).toEqual([
+      ['photo', 'Hammer Curls'],
+      ['photo', 'Triceps Pushdown - Rope Attachment'],
+    ]);
+  });
+});
+
+describe('currentWeek', () => {
+  it('counts weeks from the start date', () => {
+    expect(currentWeek('2026-10-23', new Date('2026-10-23T08:00'), 7)).toBe(1);
+    expect(currentWeek('2026-10-23', new Date('2026-10-29T20:00'), 7)).toBe(1);
+    expect(currentWeek('2026-10-23', new Date('2026-10-30T08:00'), 7)).toBe(2);
+  });
+
+  it('stays within the plan', () => {
+    expect(currentWeek('2026-10-23', new Date('2027-03-01T08:00'), 7)).toBe(7);
+    expect(currentWeek(undefined, new Date('2026-10-23T08:00'), 7)).toBe(1);
+  });
+});
+
+describe('kgFromPlan', () => {
+  it('takes the first number of a load in kg', () => {
+    expect(kgFromPlan('8/10 kg')).toBe(8);
+    expect(kgFromPlan('45kg')).toBe(45);
+    expect(kgFromPlan('2,5 kg')).toBe(2.5);
+  });
+
+  it('ignores loads that are not in kg', () => {
+    expect(kgFromPlan('trova 12 rm')).toBeUndefined();
+    expect(kgFromPlan('troviamo resistenza')).toBeUndefined();
+    expect(kgFromPlan(undefined)).toBeUndefined();
+  });
+});
+
+describe('planProblems', () => {
+  const valid = (): Plan => ({
+    title: 'Scheda',
+    startDate: '2026-09-27',
+    weekCount: 2,
+    days: [
+      {
+        id: 'A',
+        title: 'Giorno A',
+        exercises: [
+          {
+            id: 'squat',
+            name: 'squat',
+            media: { search: 'squat', gif: [{ id: 'HsvHqgf', name: 'dumbbell squat' }] },
+            weeks: [{ setsReps: '3x10', rest: "1'30", load: '8 kg' }, {}],
+          },
+        ],
+      },
+    ],
+  });
+
+  it('finds nothing wrong in a plan the app can follow', () => {
+    expect(planProblems(valid())).toEqual({ errors: [], warnings: [] });
+  });
+
+  it('rejects repeated ids and more weeks than the plan has', () => {
+    const plan = valid();
+    plan.days.push({ ...plan.days[0] });
+    plan.days[0].exercises[0].weeks.push({}, {});
+    const { errors } = planProblems(plan);
+    expect(errors).toContain('Il giorno "A" compare più volte.');
+    expect(errors).toContain('L\'esercizio "squat" compare più volte: gli id degli esercizi devono essere unici.');
+    expect(errors).toContain('"squat" ha 4 settimane, la scheda 2.');
+  });
+
+  it('warns about prescriptions the app reads only as notes, and exercises without demonstrations', () => {
+    const plan = valid();
+    plan.days[0].exercises[0].weeks[0] = { setsReps: 'tre serie lente', rest: 'poco' };
+    delete plan.days[0].exercises[0].media;
+    expect(planProblems(plan).warnings).toEqual([
+      '"squat", settimana 1: "tre serie lente" non indica serie e ripetizioni (es. 3x10, 3x8/10, 3x30", 2xmax): l\'app la mostra come nota e non conta le serie.',
+      '"squat", settimana 1: il recupero "poco" non si legge (es. 1\'30, 2\', 40"): niente timer.',
+      '"squat" non ha GIF né foto: l\'app mostrerà solo la ricerca su YouTube.',
+    ]);
+  });
+});

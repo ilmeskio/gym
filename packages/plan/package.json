@@ -1,0 +1,23 @@
+{
+  "name": "@gymapp/plan",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "import-xlsx": "node scripts/import-xlsx.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "exceljs": "^4.4.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./data/*": "./data/*"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "gym",
+  "private": true,
+  "packageManager": "pnpm@12.11.2",
+  "scripts": {
+    "dev": "pnpm --filter app web",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "build:web": "pnpm --filter app build:web",
+    "import-plan": "pnpm --filter @gymapp/plan import-xlsx"
+  }
+}
