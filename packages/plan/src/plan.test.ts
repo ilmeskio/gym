@@ -10,6 +10,7 @@ import {
   readSets,
   repMaxAdvice,
   session,
+  stepDetails,
   youtubeId,
 } from './index.ts';
 import type { Plan } from './index.ts';
@@ -285,5 +286,36 @@ describe('planProblems', () => {
       '"squat", settimana 1: il recupero "poco" non si legge (es. 1\'30, 2\', 40"): niente timer.',
       '"squat" non ha GIF né foto: l\'app mostrerà solo la ricerca su YouTube.',
     ]);
+  });
+});
+
+describe('stepDetails', () => {
+  it('lists rest, tempo, reps in reserve and notes, in this order', () => {
+    const [step] = session(
+      {
+        ...plan,
+        days: [
+          {
+            id: 'B',
+            title: 'Giorno B',
+            exercises: [
+              {
+                id: 'pecfly',
+                name: 'pecfly',
+                notes: 'gomiti morbidi',
+                weeks: [{ setsReps: '3x10', rest: "1'30", tut: '2" fase eccentrica', rir: '2' }],
+              },
+            ],
+          },
+        ],
+      },
+      'B',
+      1,
+    );
+    expect(stepDetails(step)).toEqual(["recupero 1'30", 'TUT 2" fase eccentrica', 'RIR 2', 'gomiti morbidi']);
+  });
+
+  it('is empty when the week says only sets and reps', () => {
+    expect(stepDetails(session(plan, 'A', 2)[1])).toEqual([]);
   });
 });
