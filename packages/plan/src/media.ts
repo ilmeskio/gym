@@ -1,13 +1,17 @@
 // Exercise demonstrations, stored with each exercise of the plan.
 // - `youtube`: id of a chosen video, takes precedence over everything;
-// - `gif`: animated GIFs from ExerciseDB (free API), one per part of a superset;
+// - `gif`: animated GIFs, one per part of a superset: from ExerciseDB (free API), or our own
+//   animations (`source: 'gym'`, made with Remotion in packages/animations) for the exercises
+//   ExerciseDB does not have;
 // - `photos`: without GIFs, free-exercise-db exercises (public domain),
 //   each with start and end photos to alternate;
 // - `search`: text to search YouTube for a video when there is nothing else.
 
+export type Gif = { id: string; name: string; source?: 'gym' };
+
 export type ExerciseMedia = {
   youtube?: string;
-  gif?: { id: string; name: string }[];
+  gif?: Gif[];
   photos?: string[];
   search?: string;
 };
@@ -16,6 +20,20 @@ export type Demo = { kind: 'gif' | 'photo'; name: string; frames: string[] };
 
 const EXERCISE_DB = 'https://static.exercisedb.dev/media';
 const FREE_EXERCISE_DB = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises';
+// Published with the web app, from apps/app/public/animations.
+const OWN_ANIMATIONS = 'https://consiglio.fyi/gym/animations';
+
+/** Our own animations, for the exercises ExerciseDB does not have. */
+const ANIMATIONS: Gif[] = [{ id: 'hollow-hold', name: 'hollow body hold (barchetta)', source: 'gym' }];
+
+/** Our own animations whose name has every word of the query. */
+export function findAnimations(query: string): Gif[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return ANIMATIONS.filter((a) => words.every((w) => a.name.toLowerCase().includes(w)));
+}
+
+export const gifUrl = (gif: Gif) =>
+  gif.source === 'gym' ? `${OWN_ANIMATIONS}/${gif.id}.gif` : `${EXERCISE_DB}/${gif.id}.gif`;
 
 /** The text to search YouTube for the exercise. */
 export const youtubeSearch = (name: string, media?: ExerciseMedia) => media?.search ?? `${name} esecuzione corretta`;
@@ -23,7 +41,7 @@ export const youtubeSearch = (name: string, media?: ExerciseMedia) => media?.sea
 /** The animated demonstrations of an exercise, one per part of a superset. */
 export function demos(entry: ExerciseMedia | undefined, withGif = true): Demo[] {
   if (withGif && entry?.gif?.length) {
-    return entry.gif.map((g) => ({ kind: 'gif', name: g.name, frames: [`${EXERCISE_DB}/${g.id}.gif`] }));
+    return entry.gif.map((g) => ({ kind: 'gif', name: g.name, frames: [gifUrl(g)] }));
   }
   return (entry?.photos ?? []).map((exercise) => ({
     kind: 'photo',

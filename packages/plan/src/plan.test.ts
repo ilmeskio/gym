@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   currentWeek,
   demos,
+  findAnimations,
   kgFromPlan,
   planProblems,
   prescription,
@@ -207,11 +208,34 @@ describe('demos', () => {
     expect(demos(undefined)).toEqual([]);
   });
 
+  it('mixes our own animations with the ExerciseDB GIFs, in the order of the superset', () => {
+    const media = {
+      gif: [
+        { id: 'hollow-hold', name: 'barchetta', source: 'gym' as const },
+        { id: 'RKjH6Lt', name: 'side bridge' },
+      ],
+    };
+    expect(demos(media)).toEqual([
+      { kind: 'gif', name: 'barchetta', frames: ['https://consiglio.fyi/gym/animations/hollow-hold.gif'] },
+      { kind: 'gif', name: 'side bridge', frames: ['https://static.exercisedb.dev/media/RKjH6Lt.gif'] },
+    ]);
+  });
+
   it('falls back to photos when GIFs cannot be used', () => {
     expect(demos(catalog.superset, false).map((d) => [d.kind, d.name])).toEqual([
       ['photo', 'Hammer Curls'],
       ['photo', 'Triceps Pushdown - Rope Attachment'],
     ]);
+  });
+});
+
+describe('findAnimations', () => {
+  it('finds our own animations by the words of their name', () => {
+    expect(findAnimations('hollow hold')).toEqual([
+      { id: 'hollow-hold', name: 'hollow body hold (barchetta)', source: 'gym' },
+    ]);
+    expect(findAnimations('barchetta').map((a) => a.id)).toEqual(['hollow-hold']);
+    expect(findAnimations('dumbbell squat')).toEqual([]);
   });
 });
 

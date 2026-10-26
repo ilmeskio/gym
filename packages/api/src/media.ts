@@ -1,7 +1,9 @@
-// Finding demonstrations for an exercise: animated GIFs from ExerciseDB (free API) and
-// start and end photos from free-exercise-db (public domain), as the app shows them.
+// Finding demonstrations for an exercise: our own animations and animated GIFs from ExerciseDB
+// (free API), and start and end photos from free-exercise-db (public domain), as the app shows them.
 
-export type MediaCandidate = { id: string; name: string; preview: string };
+import { findAnimations, gifUrl } from '@gymapp/plan';
+
+export type MediaCandidate = { id: string; name: string; preview: string; source?: 'gym' };
 export type MediaCandidates = { gif: MediaCandidate[]; photos: MediaCandidate[] };
 export type MediaSearch = (query: string, limit: number) => Promise<MediaCandidates>;
 
@@ -36,7 +38,7 @@ export function mediaSearch(fetcher: typeof fetch = fetch): MediaSearch {
       photoList(),
     ]);
     return {
-      gif: gif.slice(0, limit),
+      gif: [...findAnimations(query).map((a) => ({ ...a, preview: gifUrl(a) })), ...gif].slice(0, limit),
       photos: list
         .filter((e) => words.every((w) => e.name.toLowerCase().includes(w)))
         .slice(0, limit)

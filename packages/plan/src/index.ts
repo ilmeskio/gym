@@ -189,10 +189,10 @@ export function todayDate(today = new Date()): string {
   return `${today.getFullYear()}-${two(today.getMonth() + 1)}-${two(today.getDate())}`;
 }
 
-export { demos, youtubeId, youtubeSearch } from './media.ts';
+export { demos, findAnimations, gifUrl, youtubeId, youtubeSearch } from './media.ts';
 export { cuesBetween, PREPARE_SECONDS, timerAt } from './timer.ts';
 export type { Cue, Phase, TimerState } from './timer.ts';
-export type { Demo, ExerciseMedia } from './media.ts';
+export type { Demo, ExerciseMedia, Gif } from './media.ts';
 
 export type PlanProblems = {
   /** The plan cannot be used as it is. */
