@@ -76,8 +76,9 @@ GIF 360×360 in `apps/app/public/animations/<id>.gif`. Per aggiungerne una: una 
 Il catalogo contiene anche animazioni fatte da disegni con licenza aperta: le due lat machine
 (`underhand-pulldown`, `wide-grip-pulldown`) mostrano prima lo zoom su una mano con la presa
 scritta, poi le due posizioni. I disegni stanno in `packages/animations/public`, ciascuno con un
-README su autore e licenza (wger.de, CC BY-SA 4.0; Everkinetic, CC BY-SA 3.0), e il nome
-dell'animazione, che l'app mostra come didascalia, riporta l'autore e la licenza.
+README su autore e licenza (wger.de, CC BY-SA 4.0; Everkinetic, CC BY-SA 3.0). Nel catalogo e
+nella scheda queste animazioni hanno un campo `credit` con autore e licenza, che l'app mostra
+sempre sotto l'immagine.
 
 L'app scarica solo le immagini; la ricerca la fa l'MCP quando si scrive la scheda, nostre
 animazioni comprese. Se una GIF

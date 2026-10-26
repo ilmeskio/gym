@@ -43,7 +43,12 @@ const exercise = z.object({
         .array(
           z.union([
             z.object({ id: z.string().regex(/^\w{7}$/), name: z.string().max(200) }),
-            z.object({ id: z.string().regex(/^[a-z0-9-]{1,40}$/), name: z.string().max(200), source: z.literal('gym') }),
+            z.object({
+              id: z.string().regex(/^[a-z0-9-]{1,40}$/),
+              name: z.string().max(200),
+              source: z.literal('gym'),
+              credit: note(200).describe('Author and licence, as find_exercise_media gives them: keep them.'),
+            }),
           ]),
         )
         .max(4)

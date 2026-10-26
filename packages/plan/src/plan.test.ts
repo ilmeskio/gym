@@ -280,6 +280,14 @@ describe('demos', () => {
     ]);
   });
 
+  it('keeps the credit an open licence asks for', () => {
+    const media = {
+      gif: [{ id: 'underhand-pulldown', name: 'lat machine presa supina', source: 'gym' as const, credit: 'disegno di Franpol, wger.de, CC BY-SA 4.0' }],
+    };
+    expect(demos(media)[0].credit).toBe('disegno di Franpol, wger.de, CC BY-SA 4.0');
+    expect(demos({ gif: [{ id: 'RKjH6Lt', name: 'side bridge' }] })[0]).not.toHaveProperty('credit');
+  });
+
   it('falls back to photos when GIFs cannot be used', () => {
     expect(demos(catalog.superset, false).map((d) => [d.kind, d.name])).toEqual([
       ['photo', 'Hammer Curls'],
@@ -296,7 +304,14 @@ describe('findAnimations', () => {
     expect(findAnimations('barchetta').map((a) => a.id)).toEqual(['hollow-hold']);
     expect(findAnimations('plank braccia tese').map((a) => a.id)).toEqual(['straight-arm-plank']);
     expect(findAnimations('leg press').map((a) => a.id)).toEqual(['horizontal-leg-press']);
-    expect(findAnimations('lat machine presa supina').map((a) => a.id)).toEqual(['underhand-pulldown']);
+    expect(findAnimations('lat machine presa supina')).toEqual([
+      {
+        id: 'underhand-pulldown',
+        name: 'underhand lat pulldown (lat machine presa supina)',
+        source: 'gym',
+        credit: 'disegno di Franpol, wger.de, CC BY-SA 4.0',
+      },
+    ]);
     expect(findAnimations('lat machine presa prona').map((a) => a.id)).toEqual(['wide-grip-pulldown']);
     expect(findAnimations('dumbbell squat')).toEqual([]);
   });
