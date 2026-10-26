@@ -1,11 +1,20 @@
 import { StyleSheet, View } from 'react-native';
 import { colors } from '../theme';
 
-type Props = { youtube: string };
+type Props = {
+  youtube: string;
+  /** Height of the frame, as a share of the window; without it the frame takes the whole width. */
+  height?: number;
+};
 
-export function ExerciseVideo({ youtube }: Props) {
+export function ExerciseVideo({ youtube, height }: Props) {
   return (
-    <View style={styles.frame}>
+    <View
+      style={[
+        styles.frame,
+        height ? { height, width: (height * 16) / 9, maxWidth: '100%', alignSelf: 'center' } : null,
+      ]}
+    >
       <iframe
         src={`https://www.youtube-nocookie.com/embed/${youtube}?rel=0&playsinline=1`}
         title="Video dell'esercizio"

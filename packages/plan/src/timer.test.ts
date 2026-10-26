@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cuesBetween, timerAt, type Phase } from './timer.ts';
+import { cuesBetween, RESUME_MARGIN_SECONDS, timerAt, timerToResume, type Phase } from './timer.ts';
 
 const hold: Phase[] = [
   { kind: 'prepare', seconds: 5 },
@@ -35,5 +35,35 @@ describe('cuesBetween', () => {
 
   it('ends a rest with the round signal', () => {
     expect(cuesBetween([{ kind: 'rest', seconds: 90 }], 80, 91)).toEqual(['tick', 'tick', 'tick', 'end']);
+  });
+});
+
+describe('timerToResume', () => {
+  const saved = { workoutId: 'w1', exerciseId: 'plank', kind: 'hold', phases: hold, startedAt: 1_000_000 };
+  const json = JSON.stringify(saved);
+  const at = (seconds: number) => saved.startedAt + seconds * 1000;
+
+  it('gives back the timer of the same workout and exercise', () => {
+    expect(timerToResume(json, 'w1', 'plank', at(12))).toEqual(saved);
+  });
+
+  it('ignores a timer of another exercise or workout', () => {
+    expect(timerToResume(json, 'w1', 'squat', at(12))).toBeUndefined();
+    expect(timerToResume(json, 'w2', 'plank', at(12))).toBeUndefined();
+  });
+
+  it('keeps a timer that ended a little ago, so the screen can close it without signals', () => {
+    expect(timerToResume(json, 'w1', 'plank', at(35 + RESUME_MARGIN_SECONDS))).toEqual(saved);
+  });
+
+  it('drops a timer that ended too long ago, or that starts in the future', () => {
+    expect(timerToResume(json, 'w1', 'plank', at(36 + RESUME_MARGIN_SECONDS))).toBeUndefined();
+    expect(timerToResume(json, 'w1', 'plank', at(-5))).toBeUndefined();
+  });
+
+  it('ignores nothing saved and what it cannot read', () => {
+    expect(timerToResume(null, 'w1', 'plank', at(1))).toBeUndefined();
+    expect(timerToResume('{', 'w1', 'plank', at(1))).toBeUndefined();
+    expect(timerToResume('{"workoutId":"w1","exerciseId":"plank"}', 'w1', 'plank', at(1))).toBeUndefined();
   });
 });

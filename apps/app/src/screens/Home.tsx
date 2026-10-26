@@ -134,9 +134,9 @@ const styles = StyleSheet.create({
   label: { color: colors.textMuted, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, marginTop: space(2) },
   weeks: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   week: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
