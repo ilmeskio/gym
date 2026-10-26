@@ -73,10 +73,11 @@ Le nostre animazioni sono composizioni Remotion in `packages/animations`: una fi
 lato, disegnata come le GIF di ExerciseDB (corpo grigio, muscoli che lavorano in rosso), resa in
 GIF 360×360 in `apps/app/public/animations/<id>.gif`. Per aggiungerne una: una composizione in
 `src/Root.tsx`, il suo id e il nome nel catalogo di `packages/plan/src/media.ts`, poi `render`.
-Il catalogo contiene anche immagini prese da fonti con licenza aperta e messe nello stesso
-formato: `underhand-pulldown-wger.gif` alterna le due posizioni di un disegno di Franpol su
-[wger.de](https://wger.de) (CC BY-SA 4.0), e il suo nome, che l'app mostra come didascalia,
-riporta l'autore e la licenza.
+Il catalogo contiene anche animazioni fatte da disegni con licenza aperta: le due lat machine
+(`underhand-pulldown`, `wide-grip-pulldown`) mostrano prima lo zoom su una mano con la presa
+scritta, poi le due posizioni. I disegni stanno in `packages/animations/public`, ciascuno con un
+README su autore e licenza (wger.de, CC BY-SA 4.0; Everkinetic, CC BY-SA 3.0), e il nome
+dell'animazione, che l'app mostra come didascalia, riporta l'autore e la licenza.
 
 L'app scarica solo le immagini; la ricerca la fa l'MCP quando si scrive la scheda, nostre
 animazioni comprese. Se una GIF
