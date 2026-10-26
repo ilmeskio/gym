@@ -24,7 +24,11 @@ const FREE_EXERCISE_DB = 'https://raw.githubusercontent.com/yuhonas/free-exercis
 const OWN_ANIMATIONS = 'https://consiglio.fyi/gym/animations';
 
 /** Our own animations, for the exercises ExerciseDB does not have. */
-const ANIMATIONS: Gif[] = [{ id: 'hollow-hold', name: 'hollow body hold (barchetta)', source: 'gym' }];
+const ANIMATIONS: Gif[] = [
+  { id: 'hollow-hold', name: 'hollow body hold (barchetta)', source: 'gym' },
+  { id: 'straight-arm-plank', name: 'straight arm plank (plank braccia tese)', source: 'gym' },
+  { id: 'horizontal-leg-press', name: 'horizontal leg press (leg press orizzontale)', source: 'gym' },
+];
 
 /** Our own animations whose name has every word of the query. */
 export function findAnimations(query: string): Gif[] {

@@ -8,11 +8,16 @@ export const FPS = 30;
 
 export const FLOOR = 262;
 
-const BODY = '#a7afb8';
-const OUTLINE = '#6b737c';
-const MUSCLE = '#e0473e';
+export const BODY = '#a7afb8';
+export const OUTLINE = '#6b737c';
+export const MUSCLE = '#e0473e';
+export const MACHINE = '#d9dde1';
+export const MACHINE_EDGE = '#9aa1a8';
 
-type Point = { x: number; y: number };
+export type Point = { x: number; y: number };
+
+/** The point `t` of the way from `a` to `b`. */
+export const along = (a: Point, b: Point, t: number): Point => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
 /** The point `length` away from `from`, at `angle` degrees above the horizontal, towards `side`. */
 export function reach(from: Point, length: number, angle: number, side: 'left' | 'right'): Point {
@@ -20,7 +25,7 @@ export function reach(from: Point, length: number, angle: number, side: 'left' |
   return { x: from.x + (side === 'left' ? -1 : 1) * length * Math.cos(r), y: from.y - length * Math.sin(r) };
 }
 
-function Limb({ from, to, width }: { from: Point; to: Point; width: number }) {
+export function Limb({ from, to, width }: { from: Point; to: Point; width: number }) {
   return (
     <>
       <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={OUTLINE} strokeWidth={width + 3} strokeLinecap="round" />
@@ -29,11 +34,23 @@ function Limb({ from, to, width }: { from: Point; to: Point; width: number }) {
   );
 }
 
-export function Scene({ children }: { children: ReactNode }) {
+/** A muscle at work: a red stroke over the body, between two points. */
+export function Muscle({ from, to, width = 9 }: { from: Point; to: Point; width?: number }) {
+  return (
+    <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={MUSCLE} strokeWidth={width} strokeLinecap="round" opacity={0.9} />
+  );
+}
+
+export function Head({ at }: { at: Point }) {
+  return <circle cx={at.x} cy={at.y} r={16} fill={BODY} stroke={OUTLINE} strokeWidth={2} />;
+}
+
+/** The exercise on a mat on the floor, or (`mat={false}`) on a machine that stands on the floor. */
+export function Scene({ children, mat = true }: { children: ReactNode; mat?: boolean }) {
   return (
     // The drawing is 360 wide; the view frames the floor and what rises from it, a little larger.
     <svg width={SIZE} height={SIZE} viewBox="15 60 330 330" style={{ background: '#ffffff' }}>
-      <rect x={30} y={FLOOR + 12} width={300} height={10} rx={5} fill="#d9dde1" />
+      {mat ? <rect x={30} y={FLOOR + 12} width={300} height={10} rx={5} fill={MACHINE} /> : null}
       {children}
     </svg>
   );

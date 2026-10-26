@@ -235,6 +235,8 @@ describe('findAnimations', () => {
       { id: 'hollow-hold', name: 'hollow body hold (barchetta)', source: 'gym' },
     ]);
     expect(findAnimations('barchetta').map((a) => a.id)).toEqual(['hollow-hold']);
+    expect(findAnimations('plank braccia tese').map((a) => a.id)).toEqual(['straight-arm-plank']);
+    expect(findAnimations('leg press').map((a) => a.id)).toEqual(['horizontal-leg-press']);
     expect(findAnimations('dumbbell squat')).toEqual([]);
   });
 });
