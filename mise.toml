@@ -1,3 +1,4 @@
 [tools]
 node = "24"
 supabase = "2.121.0"
+pnpm = "12.11.2"
