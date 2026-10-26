@@ -106,7 +106,10 @@ describe('screenLock', () => {
   });
 
   it('survives a refused request', async () => {
-    const lock = screenLock(() => Promise.reject(new Error('NotAllowedError')), () => true);
+    const lock = screenLock(
+      () => Promise.reject(new Error('NotAllowedError')),
+      () => true,
+    );
     lock.acquire();
     await settle();
     lock.release();

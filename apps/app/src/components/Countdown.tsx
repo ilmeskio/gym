@@ -6,7 +6,8 @@ import { cuesBetween, timerAt, type Phase } from '@gymapp/plan';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { keepAwake, signal } from '../signal';
-import { colors, space } from '../theme';
+import { colors } from '../theme';
+import { useSizes } from '../useSizes';
 import { Button } from './Button';
 
 const LABELS: Record<Phase['kind'], string> = { prepare: 'Preparati', work: 'Vai!', rest: 'Recupero' };
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export function Countdown({ phases, startedAt, onDone, stop }: Props) {
+  const z = useSizes();
   const elapsedNow = () => (Date.now() - startedAt) / 1000;
   // Signals that fell while the page was closed are not given: a timer that ended then just closes.
   const lastCheck = useRef(elapsedNow());
@@ -53,9 +55,19 @@ export function Countdown({ phases, startedAt, onDone, stop }: Props) {
   }, [done]);
 
   return (
-    <View style={[styles.box, state.kind === 'work' && styles.work]}>
-      <Text style={[styles.label, state.kind === 'work' && styles.workLabel]}>{LABELS[state.kind]}</Text>
-      <Text style={[styles.timer, state.kind === 'prepare' && styles.prepare]}>{clock(state.remaining)}</Text>
+    <View style={[styles.box, { padding: z.space(2.5), gap: z.space(1) }, state.kind === 'work' && styles.work]}>
+      <Text style={[styles.label, { fontSize: z.font(18) }, state.kind === 'work' && styles.workLabel]}>
+        {LABELS[state.kind]}
+      </Text>
+      <Text
+        style={[
+          styles.timer,
+          { fontSize: z.timer, lineHeight: z.timer * 1.05 },
+          state.kind === 'prepare' && styles.prepare,
+        ]}
+      >
+        {clock(state.remaining)}
+      </Text>
       <View style={styles.stop}>
         <Button title={stop.title} variant="outline" onPress={() => stop.onStop(worked)} />
       </View>
@@ -64,12 +76,12 @@ export function Countdown({ phases, startedAt, onDone, stop }: Props) {
 }
 
 const styles = StyleSheet.create({
-  box: { alignItems: 'center', gap: space(2), backgroundColor: colors.surface, borderRadius: 12, padding: space(4) },
+  box: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: 12 },
   work: { borderWidth: 2, borderColor: colors.accent },
-  label: { color: colors.textMuted, fontSize: 20, textTransform: 'uppercase', letterSpacing: 1 },
+  label: { color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1 },
   workLabel: { color: colors.accent, fontWeight: '700' },
-  // Large enough to read from a bench or the floor.
-  timer: { color: colors.text, fontSize: 96, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  // Sized by useSizes: 96 on a common phone, large enough to read from a bench or the floor.
+  timer: { color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   prepare: { color: colors.warning },
   // The whole width of the box: easy to hit while holding a position.
   stop: { alignSelf: 'stretch' },

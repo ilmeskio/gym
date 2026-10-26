@@ -14,6 +14,8 @@ type Props = {
   set: LoggedSet;
   number: number;
   unit: Unit;
+  /** A short chip instead of a full row, for a screen with little room: the order gives the number. */
+  compact?: boolean;
   /** A mark at the right of the row, such as the rep max search advice. */
   mark?: ReactNode;
   onSave: (change: { kg: number; reps: number }) => void;
@@ -23,22 +25,28 @@ type Props = {
 export const describeSet = (s: Pick<LoggedSet, 'kg' | 'reps'>, unit: Unit) =>
   `${kg(s.kg)} × ${s.reps}${unit === 'seconds' ? '"' : ''}`;
 
-export function SetRow({ set, number, unit, mark, onSave, onDelete }: Props) {
+/** The same, shorter: without the load when there is none. */
+const describeShort = (s: Pick<LoggedSet, 'kg' | 'reps'>, unit: Unit) =>
+  s.kg ? describeSet(s, unit) : `${s.reps}${unit === 'seconds' ? '"' : ' rip'}`;
+
+export function SetRow({ set, number, unit, compact, mark, onSave, onDelete }: Props) {
   const [editing, setEditing] = useState(false);
 
   if (editing) {
     return (
-      <SetForm
-        title={`Serie ${number}`}
-        initial={{ kg: set.kg, reps: set.reps }}
-        unit={unit}
-        onSave={(change) => {
-          onSave(change);
-          setEditing(false);
-        }}
-        onCancel={() => setEditing(false)}
-        onDelete={onDelete}
-      />
+      <View style={compact && styles.wide}>
+        <SetForm
+          title={`Serie ${number}`}
+          initial={{ kg: set.kg, reps: set.reps }}
+          unit={unit}
+          onSave={(change) => {
+            onSave(change);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+          onDelete={onDelete}
+        />
+      </View>
     );
   }
 
@@ -47,14 +55,18 @@ export function SetRow({ set, number, unit, mark, onSave, onDelete }: Props) {
       accessibilityRole="button"
       accessibilityLabel={`Serie ${number}: ${describeSet(set, unit)}. Tocca per modificare`}
       onPress={() => setEditing(true)}
-      style={styles.row}
+      style={compact ? styles.chip : styles.row}
     >
-      <Text style={styles.value}>
-        {number}. {describeSet(set, unit)}
-      </Text>
+      {compact ? (
+        <Text style={styles.chipValue}>{describeShort(set, unit)}</Text>
+      ) : (
+        <Text style={styles.value}>
+          {number}. {describeSet(set, unit)}
+        </Text>
+      )}
       <View style={styles.right}>
         {mark}
-        <Text style={styles.pencil}>✎</Text>
+        {compact ? null : <Text style={styles.pencil}>✎</Text>}
       </View>
     </Pressable>
   );
@@ -114,6 +126,18 @@ export function SetForm({ title, initial, unit, onSave, onCancel, onDelete }: Fo
 }
 
 const styles = StyleSheet.create({
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(2),
+    minHeight: 48,
+    paddingHorizontal: space(3),
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipValue: { color: colors.text, fontSize: 15 },
+  wide: { width: '100%' },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: space(1) },
   right: { flexDirection: 'row', alignItems: 'center', gap: space(4) },
   value: { color: colors.text, fontSize: 17 },
