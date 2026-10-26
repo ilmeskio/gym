@@ -2,6 +2,7 @@
 // and the `id` of the exercise's `media.gif` entry (with `source: 'gym'`).
 
 import { Composition } from 'remotion';
+import { BandFrontHold } from './BandFrontHold.tsx';
 import { CLOSE_UP_FRAMES, Drawing, POSITION_FRAMES, type DrawingProps } from './Drawing.tsx';
 import { FPS, SIZE } from './figure.tsx';
 import { HollowHold } from './HollowHold.tsx';
@@ -38,6 +39,7 @@ export function Root() {
     <>
       <Composition id="hollow-hold" component={HollowHold} durationInFrames={150} {...size} />
       <Composition id="straight-arm-plank" component={StraightArmPlank} durationInFrames={150} {...size} />
+      <Composition id="band-front-hold" component={BandFrontHold} durationInFrames={150} {...size} />
       <Composition id="horizontal-leg-press" component={HorizontalLegPress} durationInFrames={150} {...size} />
       <Composition id="underhand-pulldown" component={Drawing} defaultProps={UNDERHAND} durationInFrames={CLOSE_UP_FRAMES + 2 * POSITION_FRAMES} {...size} />
       <Composition id="wide-grip-pulldown" component={Drawing} defaultProps={WIDE_GRIP} durationInFrames={CLOSE_UP_FRAMES + 2 * POSITION_FRAMES} {...size} />
