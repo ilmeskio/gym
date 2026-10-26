@@ -89,7 +89,15 @@ function Thumbnail({ step }: { step: Step }) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: space(4), gap: space(3), maxWidth: 640, width: '100%', alignSelf: 'center' },
+  // Room at the bottom, so "Inizia allenamento" does not sit on the system gesture bar.
+  content: {
+    padding: space(4),
+    paddingBottom: space(10),
+    gap: space(3),
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
+  },
   back: { color: colors.textMuted, fontSize: 16 },
   title: { color: colors.text, fontSize: 28, fontWeight: '700' },
   muted: { color: colors.textMuted, fontSize: 15 },

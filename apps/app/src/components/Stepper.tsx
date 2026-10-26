@@ -66,10 +66,11 @@ export function Stepper({ value, onChange, step = 1, unit, zero, label }: Props)
 
 const styles = StyleSheet.create({
   stepper: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  // 48 dp: the minimum touch target on Android, for hands that may be sweaty.
   step: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',

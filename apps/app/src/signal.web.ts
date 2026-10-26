@@ -1,7 +1,8 @@
 // Timer signals in the browser: a beep with Web Audio, vibration where supported,
-// and the screen kept on while a timer runs (Screen Wake Lock).
+// and the screen kept on during the workout (Screen Wake Lock).
 
 import type { Cue } from '@gymapp/plan';
+import { counted, screenLock, type Sentinel } from './awake';
 
 let audio: AudioContext | undefined;
 
@@ -38,19 +39,14 @@ export function signal(cue: Cue) {
   }
 }
 
-let lock: { release: () => Promise<void> } | undefined;
+type WakeLock = { request: (type: 'screen') => Promise<Sentinel> };
+const wakeLock = (navigator as Navigator & { wakeLock?: WakeLock }).wakeLock;
 
-/** Keeps the screen on while a timer runs. */
-export function keepAwake(on: boolean) {
-  const wakeLock = (navigator as Navigator & { wakeLock?: { request: (type: 'screen') => Promise<typeof lock> } })
-    .wakeLock;
-  if (on && !lock && wakeLock) {
-    wakeLock
-      .request('screen')
-      .then((l) => (lock = l))
-      .catch(() => {});
-  } else if (!on && lock) {
-    lock.release().catch(() => {});
-    lock = undefined;
-  }
-}
+const screenOn = screenLock(
+  () => (wakeLock ? wakeLock.request('screen') : Promise.reject(new Error('Wake Lock non supportato'))),
+  () => document.visibilityState === 'visible',
+);
+document.addEventListener('visibilitychange', screenOn.resume);
+
+/** Keeps the screen on while someone asks for it: the workout screen, a running timer. */
+export const keepAwake = counted(screenOn.acquire, screenOn.release);

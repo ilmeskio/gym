@@ -7,7 +7,7 @@ import {
   youtubeId,
   youtubeSearch,
   type Exercise as PlanExercise,
-  type Phase,
+  type SavedTimer,
   type Step,
   type Target,
 } from '@gymapp/plan';
@@ -22,6 +22,7 @@ import { Stepper } from '../components/Stepper';
 import { useData } from '../data/Data';
 import { kg as formatKg, shortDate } from '../format';
 import { unlockSignals } from '../signal';
+import { savedTimer, saveTimer } from '../timerStore';
 import { colors, space } from '../theme';
 
 type Props = {
@@ -55,8 +56,13 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const done = setsOf(data.state, workoutId, exercise.id);
   const previous = lastTime(data.state, workoutId, exercise.id);
   const repMax = data.state.repMaxes[exercise.id];
-  // A timed hold (preparation, then the seconds) or the rest after a set.
-  const [timer, setTimer] = useState<{ kind: 'hold' | 'rest'; phases: Phase[] }>();
+  // A timed hold (preparation, then the seconds) or the rest after a set; saved, so a reload resumes it.
+  const [timer, setTimer] = useState(() => savedTimer(workoutId, exercise.id));
+  function changeTimer(next?: Pick<SavedTimer, 'kind' | 'phases'>) {
+    const started = next && { workoutId, exerciseId: exercise.id, ...next, startedAt: Date.now() };
+    saveTimer(started);
+    setTimer(started);
+  }
 
   const totalSets = findRepMax ? undefined : sets.sets?.max;
   const unit: Unit = sets.target?.kind === 'seconds' ? 'seconds' : 'reps';
@@ -87,13 +93,13 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
     if (found) saveRepMax(next.kg);
     const more = findRepMax ? !found : totalSets !== undefined && done.length + 1 < totalSets;
     if (more && step.restSeconds && !noRest)
-      setTimer({ kind: 'rest', phases: [{ kind: 'rest', seconds: step.restSeconds }] });
-    else setTimer(undefined);
+      changeTimer({ kind: 'rest', phases: [{ kind: 'rest', seconds: step.restSeconds }] });
+    else changeTimer();
   }
 
   function startHold() {
     unlockSignals();
-    setTimer({
+    changeTimer({
       kind: 'hold',
       phases: [
         { kind: 'prepare', seconds: PREPARE_SECONDS },
@@ -105,12 +111,12 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   /** A hold stopped or finished: the seconds done become the set. */
   function endHold(worked: number) {
     if (worked > 0) logSet(worked);
-    else setTimer(undefined);
+    else changeTimer();
   }
 
   function undoLast() {
     if (last) data.removeSet(last.id);
-    setTimer(undefined);
+    changeTimer();
   }
 
   let planLoad = p.load;
@@ -123,7 +129,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.bar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Esci" onPress={onExit} hitSlop={12}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Esci" onPress={onExit} style={styles.exitButton}>
           <Text style={styles.exit}>✕</Text>
         </Pressable>
         <Text style={styles.heading}>{heading}</Text>
@@ -253,12 +259,20 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
       </View>
 
       {timer?.kind === 'hold' ? (
-        <Countdown phases={timer.phases} onDone={endHold} stop={{ title: 'Stop', onStop: endHold }} />
+        <Countdown
+          key={timer.startedAt}
+          phases={timer.phases}
+          startedAt={timer.startedAt}
+          onDone={endHold}
+          stop={{ title: 'Stop', onStop: endHold }}
+        />
       ) : timer?.kind === 'rest' ? (
         <Countdown
+          key={timer.startedAt}
           phases={timer.phases}
-          onDone={() => setTimer(undefined)}
-          stop={{ title: 'Salta recupero', onStop: () => setTimer(undefined) }}
+          startedAt={timer.startedAt}
+          onDone={() => changeTimer()}
+          stop={{ title: 'Salta recupero', onStop: () => changeTimer() }}
         />
       ) : finished ? (
         <Button title={step.position === step.total ? 'Fine allenamento' : 'Prossimo esercizio'} onPress={onNext} />
@@ -357,8 +371,17 @@ function Item({
 }
 
 const styles = StyleSheet.create({
-  content: { padding: space(4), gap: space(4), maxWidth: 640, width: '100%', alignSelf: 'center' },
+  // Room at the bottom, so the last buttons do not sit on the system gesture bar.
+  content: {
+    padding: space(4),
+    paddingBottom: space(10),
+    gap: space(4),
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
+  },
   bar: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  exitButton: { width: 48, height: 48, marginLeft: -space(3), alignItems: 'center', justifyContent: 'center' },
   exit: { color: colors.textMuted, fontSize: 20 },
   heading: { color: colors.textMuted, fontSize: 14, flex: 1 },
   counter: { color: colors.textMuted, fontSize: 14, fontVariant: ['tabular-nums'] },

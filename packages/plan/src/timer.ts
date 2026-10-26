@@ -36,3 +36,38 @@ export function cuesBetween(phases: Phase[], from: number, to: number): Cue[] {
   }
   return cues.filter((c) => c.at > from && c.at <= to).map((c) => c.cue);
 }
+
+/**
+ * A running timer saved on the device, so a reload finds it: the moment it started (ms since
+ * the epoch) and its phases, not the seconds left.
+ */
+export type SavedTimer = {
+  workoutId: string;
+  exerciseId: string;
+  kind: 'hold' | 'rest';
+  phases: Phase[];
+  startedAt: number;
+};
+
+/** How long after its end a saved timer still counts: the screen then closes it without signals. */
+export const RESUME_MARGIN_SECONDS = 5 * 60;
+
+/** The saved timer, if it belongs to this exercise of this workout and is not too old (`now` in ms). */
+export function timerToResume(
+  saved: string | null,
+  workoutId: string,
+  exerciseId: string,
+  now: number,
+): SavedTimer | undefined {
+  let timer: SavedTimer;
+  try {
+    timer = JSON.parse(saved ?? 'null');
+  } catch {
+    return undefined;
+  }
+  if (!timer || timer.workoutId !== workoutId || timer.exerciseId !== exerciseId) return undefined;
+  if (!Array.isArray(timer.phases) || !timer.phases.length || typeof timer.startedAt !== 'number') return undefined;
+  const elapsed = (now - timer.startedAt) / 1000;
+  const total = timer.phases.reduce((sum, p) => sum + p.seconds, 0);
+  return elapsed >= 0 && elapsed <= total + RESUME_MARGIN_SECONDS ? timer : undefined;
+}

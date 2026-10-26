@@ -29,7 +29,15 @@ export function Button({ title, onPress, variant = 'solid', disabled, inRow }: P
 }
 
 const styles = StyleSheet.create({
-  base: { paddingVertical: 14, paddingHorizontal: 18, borderRadius: 12, alignItems: 'center' },
+  // At least 48 dp high: the minimum touch target on Android.
+  base: {
+    minHeight: 48,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   solid: { backgroundColor: colors.accent },
   outline: { borderWidth: 1, borderColor: colors.border },
   text: { color: colors.text, fontSize: 16, fontWeight: '600' },
