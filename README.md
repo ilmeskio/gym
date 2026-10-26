@@ -26,7 +26,7 @@ supabase/           configurazione del progetto, migrazioni dello schema
 ```sh
 pnpm install
 pnpm dev                                  # app nel browser
-pnpm test                                 # test dei pacchetti plan, log e api
+pnpm test                                 # test dei pacchetti plan, log, api e dell'app
 pnpm typecheck
 pnpm import-plan <scheda.xlsx> <out.json> # Excel del trainer -> JSON di una scheda
 pnpm build:web                            # export statico in apps/app/dist

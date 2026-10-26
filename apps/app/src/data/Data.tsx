@@ -7,6 +7,7 @@ import type { Session } from '@supabase/supabase-js';
 import * as Crypto from 'expo-crypto';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
+import { forgetTimer } from '../timerStore';
 import { download, send } from './api';
 import { supabase } from './supabase';
 
@@ -153,14 +154,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
       logSet: (set) => setState((s) => L.logSet(s, { ...set, id: Crypto.randomUUID(), at: now() })),
       editSet: (id, change) => setState((s) => L.editSet(s, id, change)),
       removeSet: (id) => setState((s) => L.removeSet(s, id)),
-      removeWorkout: (id) => setState((s) => L.removeWorkout(s, id)),
+      removeWorkout: (id) => {
+        forgetTimer(id);
+        setState((s) => L.removeWorkout(s, id));
+      },
       saveRepMax: (repMax) => setState((s) => L.saveRepMax(s, { ...repMax, at: now() })),
-      finishWorkout: (id, feedback) =>
+      finishWorkout: (id, feedback) => {
+        forgetTimer(id);
         setState((s) => {
           const workout = s.workouts[id];
           if (!workout) return s;
           return L.finishWorkout(s, id, { ...feedback, at: L.workoutEnd(workout, now()) });
-        }),
+        });
+      },
       setStartDate: (planId, startDate) => setState((s) => L.setStartDate(s, planId, startDate)),
       setVideo: (exerciseId, youtube) => setState((s) => L.setVideo(s, exerciseId, youtube)),
     }),

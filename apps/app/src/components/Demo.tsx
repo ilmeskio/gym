@@ -9,9 +9,16 @@ import { colors, space } from '../theme';
 
 const INTERVAL_MS = 1200;
 
-type Props = { demo: DemoData; onError?: () => void };
+type Props = {
+  demo: DemoData;
+  /** Height of the image, as a share of the window; without it the image takes the whole width. */
+  height?: number;
+  /** The dataset's name under the image: useful when several demonstrations sit side by side. */
+  caption?: boolean;
+  onError?: () => void;
+};
 
-export function Demo({ demo, onError }: Props) {
+export function Demo({ demo, height, caption = true, onError }: Props) {
   const { frames } = demo;
   const [frame, setFrame] = useState(0);
 
@@ -23,7 +30,13 @@ export function Demo({ demo, onError }: Props) {
 
   return (
     <View style={styles.frame}>
-      <View style={[styles.image, demo.kind === 'gif' ? styles.gif : styles.photo]}>
+      <View
+        style={[
+          styles.image,
+          demo.kind === 'gif' ? styles.gif : styles.photo,
+          height ? { height, width: height * (demo.kind === 'gif' ? 1 : 3 / 2) } : null,
+        ]}
+      >
         {frames.map((uri, i) => (
           <Image
             key={uri}
@@ -35,16 +48,16 @@ export function Demo({ demo, onError }: Props) {
           />
         ))}
       </View>
-      <Text style={styles.caption}>{demo.name}</Text>
+      {caption ? <Text style={styles.caption}>{demo.name}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  frame: { gap: space(1) },
-  image: { width: '100%', backgroundColor: '#ffffff', borderRadius: 12, overflow: 'hidden' },
+  frame: { gap: space(1), alignItems: 'center' },
+  image: { width: '100%', maxWidth: '100%', backgroundColor: '#ffffff', borderRadius: 12, overflow: 'hidden' },
   // ExerciseDB GIFs are 180×180: beyond twice that they get blurry.
-  gif: { aspectRatio: 1, maxWidth: 360, alignSelf: 'center' },
+  gif: { aspectRatio: 1, maxWidth: 360 },
   photo: { aspectRatio: 3 / 2 },
-  caption: { color: colors.textMuted, fontSize: 12, textAlign: 'center' },
+  caption: { color: colors.textMuted, fontSize: 11, textAlign: 'center' },
 });

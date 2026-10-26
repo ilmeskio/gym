@@ -3,11 +3,21 @@
 import { Linking, Pressable, StyleSheet, Text } from 'react-native';
 import { colors } from '../theme';
 
-type Props = { youtube: string };
+type Props = {
+  youtube: string;
+  /** Height of the frame, as a share of the window; without it the frame takes the whole width. */
+  height?: number;
+};
 
-export function ExerciseVideo({ youtube }: Props) {
+export function ExerciseVideo({ youtube, height }: Props) {
   return (
-    <Pressable style={styles.frame} onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${youtube}`)}>
+    <Pressable
+      style={[
+        styles.frame,
+        height ? { height, width: (height * 16) / 9, maxWidth: '100%', alignSelf: 'center' } : null,
+      ]}
+      onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${youtube}`)}
+    >
       <Text style={styles.play}>▶</Text>
       <Text style={styles.text}>Guarda il video</Text>
     </Pressable>
