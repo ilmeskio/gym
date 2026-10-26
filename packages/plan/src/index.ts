@@ -78,17 +78,23 @@ export function readSets(text: string | undefined): SetsReading {
 
 const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
-/** The timer of a timed set: preparation, the hold, then the hold that follows it in a superset. */
-export function holdPhases({ then }: SetsReading, seconds: number): Phase[] {
+/**
+ * The timer of a timed set: preparation, the hold, then the hold that follows it in a superset,
+ * for `thenSeconds` per side (the plan's seconds unless chosen otherwise).
+ */
+export function holdPhases({ then }: SetsReading, seconds: number, thenSeconds = then?.seconds): Phase[] {
   const phases: Phase[] = [
     { kind: 'prepare', seconds: PREPARE_SECONDS },
     { kind: 'work', seconds },
   ];
   if (!then) return phases;
   const name = capitalized(then.name ?? 'secondo esercizio');
-  const labels = then.perSide ? [`${name}, lato destro`, `${name}, lato sinistro`] : [name];
+  const labels = then.perSide ? [`${name}, lato sinistro`, `${name}, lato destro`] : [name];
   for (const label of labels) {
-    phases.push({ kind: 'prepare', seconds: PREPARE_SECONDS, label }, { kind: 'work', seconds: then.seconds, label });
+    phases.push(
+      { kind: 'prepare', seconds: PREPARE_SECONDS, label },
+      { kind: 'work', seconds: thenSeconds ?? then.seconds, label },
+    );
   }
   return phases;
 }

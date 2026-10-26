@@ -75,6 +75,9 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const [chosenReps, setChosenReps] = useState<number>();
   const currentKg = chosenKg ?? proposedKg;
   const currentReps = chosenReps ?? proposedReps;
+  // In a superset, the seconds of the hold that follows each set.
+  const [chosenThen, setChosenThen] = useState<number>();
+  const currentThen = chosenThen ?? sets.then?.seconds;
 
   const saveRepMax = (kg: number) =>
     findRepMax && data.saveRepMax({ exerciseId: exercise.id, reps: findRepMax, kg, workoutId });
@@ -94,7 +97,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
 
   function startHold() {
     unlockSignals();
-    setTimer({ kind: 'hold', phases: holdPhases(sets, currentReps) });
+    setTimer({ kind: 'hold', phases: holdPhases(sets, currentReps, currentThen) });
   }
 
   /** A hold stopped or finished: the seconds done become the set. */
@@ -230,6 +233,15 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
                   onChange={setChosenReps}
                 />
               </View>
+              {sets.then && currentThen !== undefined ? (
+                <View style={styles.group}>
+                  <Text style={styles.label}>
+                    {sets.then.name ?? 'Secondo esercizio'}
+                    {sets.then.perSide ? ', per lato' : ''}
+                  </Text>
+                  <Stepper label="Secondi del secondo esercizio" value={currentThen} onChange={setChosenThen} />
+                </View>
+              ) : null}
             </View>
             {unit === 'seconds' && !noRest ? (
               <Button title={`Avvia ${currentReps}" (5" per prepararti)`} onPress={startHold} />

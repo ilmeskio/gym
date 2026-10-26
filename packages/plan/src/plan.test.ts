@@ -92,11 +92,16 @@ describe('holdPhases', () => {
     expect(holdPhases(readSets('3x20/30"+20" a lato side plank'), 30)).toEqual([
       { kind: 'prepare', seconds: 5 },
       { kind: 'work', seconds: 30 },
-      { kind: 'prepare', seconds: 5, label: 'Side plank, lato destro' },
-      { kind: 'work', seconds: 20, label: 'Side plank, lato destro' },
       { kind: 'prepare', seconds: 5, label: 'Side plank, lato sinistro' },
       { kind: 'work', seconds: 20, label: 'Side plank, lato sinistro' },
+      { kind: 'prepare', seconds: 5, label: 'Side plank, lato destro' },
+      { kind: 'work', seconds: 20, label: 'Side plank, lato destro' },
     ]);
+  });
+
+  it('holds the second part for the seconds chosen instead of the plan', () => {
+    const phases = holdPhases(readSets('3x20/30"+20" a lato side plank'), 30, 35);
+    expect(phases.filter((p) => p.kind === 'work').map((p) => p.seconds)).toEqual([30, 35, 35]);
   });
 });
 
