@@ -296,6 +296,7 @@ describe('findAnimations', () => {
     expect(findAnimations('barchetta').map((a) => a.id)).toEqual(['hollow-hold']);
     expect(findAnimations('plank braccia tese').map((a) => a.id)).toEqual(['straight-arm-plank']);
     expect(findAnimations('leg press').map((a) => a.id)).toEqual(['horizontal-leg-press']);
+    expect(findAnimations('lat machine presa supina').map((a) => a.id)).toEqual(['underhand-pulldown-wger']);
     expect(findAnimations('dumbbell squat')).toEqual([]);
   });
 });

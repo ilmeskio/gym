@@ -28,6 +28,12 @@ const ANIMATIONS: Gif[] = [
   { id: 'hollow-hold', name: 'hollow body hold (barchetta)', source: 'gym' },
   { id: 'straight-arm-plank', name: 'straight arm plank (plank braccia tese)', source: 'gym' },
   { id: 'horizontal-leg-press', name: 'horizontal leg press (leg press orizzontale)', source: 'gym' },
+  // From a drawing by Franpol on wger.de, CC BY-SA 4.0: the name keeps the credit the licence asks for.
+  {
+    id: 'underhand-pulldown-wger',
+    name: 'underhand lat pulldown (lat machine presa supina), disegno di Franpol, wger.de, CC BY-SA 4.0',
+    source: 'gym',
+  },
 ];
 
 /** Our own animations whose name has every word of the query. */
