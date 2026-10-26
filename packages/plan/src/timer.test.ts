@@ -33,6 +33,16 @@ describe('cuesBetween', () => {
     expect(cues).toEqual(['tick', 'tick', 'tick', 'go', 'tick', 'tick', 'tick', 'end']);
   });
 
+  it('signals the start of each round that follows straight on', () => {
+    const rounds: Phase[] = [
+      { kind: 'prepare', seconds: 5 },
+      { kind: 'work', seconds: 30 },
+      { kind: 'work', seconds: 30 },
+    ];
+    expect(cuesBetween(rounds, 31, 35)).toEqual(['tick', 'tick', 'tick', 'go']);
+    expect(cuesBetween(rounds, 61, 65)).toEqual(['tick', 'tick', 'tick', 'end']);
+  });
+
   it('ends a rest with the round signal', () => {
     expect(cuesBetween([{ kind: 'rest', seconds: 90 }], 80, 91)).toEqual(['tick', 'tick', 'tick', 'end']);
   });
