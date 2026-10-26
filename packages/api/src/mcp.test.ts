@@ -203,9 +203,12 @@ describe('MCP tools', () => {
 
     const withAnimation = plan();
     withAnimation.days[0].exercises[1].media = {
-      gif: [{ id: 'hollow-hold', name: 'barchetta', source: 'gym' }],
+      gif: [{ id: 'hollow-hold', name: 'barchetta', source: 'gym', credit: 'disegno di Franpol, wger.de, CC BY-SA 4.0' }],
     };
-    expect((await tool(s, 'create_plan', { plan: withAnimation })).isError).toBe(false);
+    const created = await tool(s, 'create_plan', { plan: withAnimation });
+    expect(created.isError).toBe(false);
+    const saved = (await tool(s, 'get_plan', { plan_id: created.json.id })).json.plan;
+    expect(saved.days[0].exercises[1].media.gif[0].credit).toBe('disegno di Franpol, wger.de, CC BY-SA 4.0');
   });
 
   it('gives a link to upload the original Excel file', async () => {

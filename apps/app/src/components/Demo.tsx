@@ -13,7 +13,10 @@ type Props = {
   demo: DemoData;
   /** Height of the image, as a share of the window; without it the image takes the whole width. */
   height?: number;
-  /** The dataset's name under the image: useful when several demonstrations sit side by side. */
+  /**
+   * The dataset's name under the image: useful when several demonstrations sit side by side.
+   * The credit an open licence asks for shows anyway.
+   */
   caption?: boolean;
   onError?: () => void;
 };
@@ -48,7 +51,9 @@ export function Demo({ demo, height, caption = true, onError }: Props) {
           />
         ))}
       </View>
-      {caption ? <Text style={styles.caption}>{demo.name}</Text> : null}
+      {caption || demo.credit ? (
+        <Text style={styles.caption}>{[caption && demo.name, demo.credit].filter(Boolean).join(' · ')}</Text>
+      ) : null}
     </View>
   );
 }

@@ -7,7 +7,8 @@
 //   each with start and end photos to alternate;
 // - `search`: text to search YouTube for a video when there is nothing else.
 
-export type Gif = { id: string; name: string; source?: 'gym' };
+/** `credit`: author and licence, for the drawings whose open licence asks to name them. */
+export type Gif = { id: string; name: string; source?: 'gym'; credit?: string };
 
 export type ExerciseMedia = {
   youtube?: string;
@@ -16,7 +17,7 @@ export type ExerciseMedia = {
   search?: string;
 };
 
-export type Demo = { kind: 'gif' | 'photo'; name: string; frames: string[] };
+export type Demo = { kind: 'gif' | 'photo'; name: string; frames: string[]; credit?: string };
 
 const EXERCISE_DB = 'https://static.exercisedb.dev/media';
 const FREE_EXERCISE_DB = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises';
@@ -28,16 +29,18 @@ const ANIMATIONS: Gif[] = [
   { id: 'hollow-hold', name: 'hollow body hold (barchetta)', source: 'gym' },
   { id: 'straight-arm-plank', name: 'straight arm plank (plank braccia tese)', source: 'gym' },
   { id: 'horizontal-leg-press', name: 'horizontal leg press (leg press orizzontale)', source: 'gym' },
-  // Made from open drawings, with a close-up of the grip: the names keep the credit the licences ask for.
+  // Made from open drawings, with a close-up of the grip.
   {
     id: 'underhand-pulldown',
-    name: 'underhand lat pulldown (lat machine presa supina), disegno di Franpol, wger.de, CC BY-SA 4.0',
+    name: 'underhand lat pulldown (lat machine presa supina)',
     source: 'gym',
+    credit: 'disegno di Franpol, wger.de, CC BY-SA 4.0',
   },
   {
     id: 'wide-grip-pulldown',
-    name: 'wide grip lat pulldown (lat machine presa prona), disegni di Everkinetic, CC BY-SA 3.0',
+    name: 'wide grip lat pulldown (lat machine presa prona)',
     source: 'gym',
+    credit: 'disegni di Everkinetic, CC BY-SA 3.0',
   },
 ];
 
@@ -56,7 +59,12 @@ export const youtubeSearch = (name: string, media?: ExerciseMedia) => media?.sea
 /** The animated demonstrations of an exercise, one per part of a superset. */
 export function demos(entry: ExerciseMedia | undefined, withGif = true): Demo[] {
   if (withGif && entry?.gif?.length) {
-    return entry.gif.map((g) => ({ kind: 'gif', name: g.name, frames: [gifUrl(g)] }));
+    return entry.gif.map((g) => ({
+      kind: 'gif',
+      name: g.name,
+      frames: [gifUrl(g)],
+      ...(g.credit && { credit: g.credit }),
+    }));
   }
   return (entry?.photos ?? []).map((exercise) => ({
     kind: 'photo',

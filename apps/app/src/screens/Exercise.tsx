@@ -381,7 +381,7 @@ function Media({ exercise, minHeight }: { exercise: PlanExercise; minHeight: num
   const count = youtube ? 1 : Math.max(animations.length, 1);
   const share = (Math.min(width, 640) - 2 * z.space(4) - z.space(2) * (count - 1)) / count;
   const height = Math.min(
-    Math.max(area, minHeight) - (count > 1 ? 18 : 0),
+    Math.max(area, minHeight) - (count > 1 || animations.some((d) => d.credit) ? 18 : 0),
     MAX_MEDIA,
     count > 1 && animations.every((d) => d.kind === 'gif') ? share : Infinity,
   );
