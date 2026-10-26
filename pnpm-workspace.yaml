@@ -3,3 +3,7 @@ packages:
   - 'packages/*'
 
 nodeLinker: hoisted
+
+allowBuilds:
+  # Remotion bundles with esbuild, whose postinstall only checks the platform binary.
+  esbuild: false

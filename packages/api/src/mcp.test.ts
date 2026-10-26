@@ -1,5 +1,6 @@
 import type { Plan } from '@gymapp/plan';
 import { describe, expect, it } from 'vitest';
+import { mediaSearch } from './media.ts';
 import { AUTH_SERVER, PUBLIC_URL, setup } from './testing.ts';
 
 type Setup = ReturnType<typeof setup>;
@@ -184,6 +185,27 @@ describe('MCP tools', () => {
       name: 'dumbbell squat match',
       preview: 'https://static.exercisedb.dev/media/HsvHqgf.gif',
     });
+  });
+
+  it('finds our own animations too, and accepts them in a plan', async () => {
+    const empty = async (url: string | URL | Request) =>
+      Response.json(String(url).includes('exercisedb') ? { data: [] } : []);
+    const s = setup(mediaSearch(empty as typeof fetch));
+    const { json } = await tool(s, 'find_exercise_media', { query: 'hollow hold' });
+    expect(json.gif).toEqual([
+      {
+        id: 'hollow-hold',
+        name: 'hollow body hold (barchetta)',
+        source: 'gym',
+        preview: 'https://consiglio.fyi/gym/animations/hollow-hold.gif',
+      },
+    ]);
+
+    const withAnimation = plan();
+    withAnimation.days[0].exercises[1].media = {
+      gif: [{ id: 'hollow-hold', name: 'barchetta', source: 'gym' }],
+    };
+    expect((await tool(s, 'create_plan', { plan: withAnimation })).isError).toBe(false);
   });
 
   it('gives a link to upload the original Excel file', async () => {

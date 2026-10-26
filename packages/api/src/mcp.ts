@@ -40,10 +40,18 @@ const exercise = z.object({
   media: z
     .object({
       gif: z
-        .array(z.object({ id: z.string().regex(/^\w{7}$/), name: z.string().max(200) }))
+        .array(
+          z.union([
+            z.object({ id: z.string().regex(/^\w{7}$/), name: z.string().max(200) }),
+            z.object({ id: z.string().regex(/^[a-z0-9-]{1,40}$/), name: z.string().max(200), source: z.literal('gym') }),
+          ]),
+        )
         .max(4)
         .optional()
-        .describe('ExerciseDB GIFs from find_exercise_media, one per part of a superset.'),
+        .describe(
+          'GIFs from find_exercise_media, one per part of a superset, in order: ExerciseDB ones, or our own ' +
+            'animations, which keep `source: "gym"`.',
+        ),
       photos: z
         .array(z.string().max(200))
         .max(4)
@@ -206,8 +214,8 @@ function buildServer(store: Store, search: MediaSearch) {
     'find_exercise_media',
     {
       description:
-        'Searches demonstrations for an exercise: animated GIFs (ExerciseDB) and start/end photos ' +
-        '(free-exercise-db). Use English names, e.g. "dumbbell squat", "cable seated row"; try shorter ' +
+        'Searches demonstrations for an exercise: animated GIFs (our own animations first, then ExerciseDB) ' +
+        'and start/end photos (free-exercise-db). Use English names, e.g. "dumbbell squat", "cable seated row"; try shorter ' +
         'queries when nothing comes back. Put the chosen ids in the exercise’s `media`.',
       inputSchema: { query: z.string().min(2).max(100), limit: z.number().int().min(1).max(20).default(8) },
     },

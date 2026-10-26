@@ -12,6 +12,8 @@ personal trainer. Primo rilascio: web statico su GitHub Pages, dati su Supabase.
 apps/app/           app Expo (React Native + React Native Web)
   src/data/         login Supabase, chiamate all'API, stato condiviso dell'app
   src/screens/      schermate; src/components/ componenti condivisi
+apps/app/public/animations/  le nostre animazioni degli esercizi, pubblicate con l'app
+packages/animations/  le stesse animazioni come composizioni Remotion
 packages/api/       API Hono: rotte, controlli, server MCP, adattatore Supabase
 packages/log/       allenamenti, serie, RM, preferenze e schede: stato locale e coda di invio
 packages/plan/      modello della scheda, lettura delle prescrizioni, sequenza della sessione
@@ -30,6 +32,8 @@ pnpm test                                 # test dei pacchetti plan, log, api e 
 pnpm typecheck
 pnpm import-plan <scheda.xlsx> <out.json> # Excel del trainer -> JSON di una scheda
 pnpm build:web                            # export statico in apps/app/dist
+pnpm --filter @gymapp/animations studio   # le nostre animazioni in Remotion Studio
+pnpm --filter @gymapp/animations render   # le rigenera in apps/app/public/animations
 ```
 
 ## Schede e server MCP
@@ -59,12 +63,19 @@ ordine di precedenza:
 
 1. il video YouTube incollato dall'app stessa (salvato nelle preferenze);
 2. il campo `youtube`;
-3. le GIF del campo `gif`, da [ExerciseDB](https://oss.exercisedb.dev/) (180×180, una per
-   parte di un superset);
+3. le GIF del campo `gif`, una per parte di un superset e nello stesso ordine: da
+   [ExerciseDB](https://oss.exercisedb.dev/) (180×180), oppure nostre (`source: "gym"`) per gli
+   esercizi che ExerciseDB non ha;
 4. le foto del campo `photos`, inizio e fine movimento alternati, da
    [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (pubblico dominio).
 
-L'app scarica solo le immagini; la ricerca la fa l'MCP quando si scrive la scheda. Se una GIF
+Le nostre animazioni sono composizioni Remotion in `packages/animations`: una figura vista di
+lato, disegnata come le GIF di ExerciseDB (corpo grigio, muscoli che lavorano in rosso), resa in
+GIF 360×360 in `apps/app/public/animations/<id>.gif`. Per aggiungerne una: una composizione in
+`src/Root.tsx`, il suo id e il nome nel catalogo di `packages/plan/src/media.ts`, poi `render`.
+
+L'app scarica solo le immagini; la ricerca la fa l'MCP quando si scrive la scheda, nostre
+animazioni comprese. Se una GIF
 non si carica, l'app mostra le foto. Da ogni esercizio si può sempre cercare un video su
 YouTube, con il testo di `search` o il nome dell'esercizio.
 
