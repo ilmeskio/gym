@@ -2,7 +2,7 @@ import { activePlan, lastTime, nextDay, setsOf, workoutInProgress, type StoredPl
 import { currentWeek, session, todayDate, type Plan } from '@gymapp/plan';
 import exampleData from '@gymapp/plan/data/example.json';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { pendingAuthorization } from './src/data/authorization';
@@ -21,6 +21,7 @@ import { PastWorkout } from './src/screens/PastWorkout';
 import { Preview } from './src/screens/Preview';
 import { SignIn } from './src/screens/SignIn';
 import { WorkoutDetail } from './src/screens/WorkoutDetail';
+import { keepAwake } from './src/signal';
 import { colors } from './src/theme';
 
 /** The demo's plan, built into the app; its id is fixed so demo workouts can refer to it. */
@@ -77,6 +78,14 @@ function Content() {
     () => (workout && workoutPlan ? session(workoutPlan, workout.dayId, workout.week) : []),
     [workout?.dayId, workout?.week, workoutPlan],
   );
+
+  // The screen stays on for the whole workout, between one set and the next.
+  const training = screen.name === 'workout';
+  useEffect(() => {
+    if (!training) return;
+    keepAwake(true);
+    return () => keepAwake(false);
+  }, [training]);
 
   if (!data.loaded || data.session === undefined) return null;
 
