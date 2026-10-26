@@ -3,6 +3,8 @@ import {
   currentWeek,
   demos,
   findAnimations,
+  holdPhases,
+  intervalPhases,
   kgFromPlan,
   planProblems,
   prescription,
@@ -54,9 +56,66 @@ describe('readSets', () => {
     });
   });
 
+  it('reads a timed hold that follows in a superset, per side', () => {
+    expect(readSets('3x20/30+20" a lato side plank')).toEqual({
+      sets: { min: 3, max: 3 },
+      target: { kind: 'reps', min: 20, max: 30 },
+      note: '+20" a lato side plank',
+      then: { seconds: 20, perSide: true, name: 'side plank' },
+    });
+    expect(readSets('3x20/30"+20" a lato side plank').then).toEqual({ seconds: 20, perSide: true, name: 'side plank' });
+    expect(readSets('3x30"+15" hollow').then).toEqual({ seconds: 15, perSide: false, name: 'hollow' });
+  });
+
+  it('reads rounds of reps against the clock', () => {
+    expect(readSets('5 rep ogni 30" x 4 min')).toEqual({
+      note: '5 rep ogni 30" x 4 min',
+      intervals: { reps: 5, every: 30, minutes: 4 },
+    });
+    expect(readSets('6 rep ogni 30"x5min').intervals).toEqual({ reps: 6, every: 30, minutes: 5 });
+  });
+
   it('leaves free text as a note', () => {
-    expect(readSets('5 rep ogni 30" x 4 min')).toEqual({ note: '5 rep ogni 30" x 4 min' });
+    expect(readSets('uguale 5min')).toEqual({ note: 'uguale 5min' });
     expect(readSets(undefined)).toEqual({});
+  });
+});
+
+describe('holdPhases', () => {
+  it('prepares, then holds for the seconds chosen', () => {
+    expect(holdPhases(readSets('3x30"'), 25)).toEqual([
+      { kind: 'prepare', seconds: 5 },
+      { kind: 'work', seconds: 25 },
+    ]);
+  });
+
+  it('goes on with the second part of the superset, one side at a time', () => {
+    expect(holdPhases(readSets('3x20/30"+20" a lato side plank'), 30)).toEqual([
+      { kind: 'prepare', seconds: 5 },
+      { kind: 'work', seconds: 30 },
+      { kind: 'prepare', seconds: 5, label: 'Side plank, lato sinistro' },
+      { kind: 'work', seconds: 20, label: 'Side plank, lato sinistro' },
+      { kind: 'prepare', seconds: 5, label: 'Side plank, lato destro' },
+      { kind: 'work', seconds: 20, label: 'Side plank, lato destro' },
+    ]);
+  });
+
+  it('holds the second part for the seconds chosen instead of the plan', () => {
+    const phases = holdPhases(readSets('3x20/30"+20" a lato side plank'), 30, 35);
+    expect(phases.filter((p) => p.kind === 'work').map((p) => p.seconds)).toEqual([30, 35, 35]);
+  });
+});
+
+describe('intervalPhases', () => {
+  it('prepares, then one round every so many seconds until the minutes are over', () => {
+    const phases = intervalPhases({ reps: 5, every: 30, minutes: 2 });
+    expect(phases).toEqual([
+      { kind: 'prepare', seconds: 5 },
+      { kind: 'work', seconds: 30, label: 'Giro 1 di 4: 5 ripetizioni' },
+      { kind: 'work', seconds: 30, label: 'Giro 2 di 4: 5 ripetizioni' },
+      { kind: 'work', seconds: 30, label: 'Giro 3 di 4: 5 ripetizioni' },
+      { kind: 'work', seconds: 30, label: 'Giro 4 di 4: 5 ripetizioni' },
+    ]);
   });
 });
 
@@ -293,6 +352,12 @@ describe('planProblems', () => {
     expect(planProblems(valid())).toEqual({ errors: [], warnings: [] });
   });
 
+  it('accepts rounds against the clock', () => {
+    const plan = valid();
+    plan.days[0].exercises[0].weeks[0] = { setsReps: '5 rep ogni 30" x 4 min' };
+    expect(planProblems(plan).warnings).toEqual([]);
+  });
+
   it('rejects repeated ids and more weeks than the plan has', () => {
     const plan = valid();
     plan.days.push({ ...plan.days[0] });
@@ -308,7 +373,7 @@ describe('planProblems', () => {
     plan.days[0].exercises[0].weeks[0] = { setsReps: 'tre serie lente', rest: 'poco' };
     delete plan.days[0].exercises[0].media;
     expect(planProblems(plan).warnings).toEqual([
-      '"squat", settimana 1: "tre serie lente" non indica serie e ripetizioni (es. 3x10, 3x8/10, 3x30", 2xmax): l\'app la mostra come nota e non conta le serie.',
+      '"squat", settimana 1: "tre serie lente" non indica serie e ripetizioni (es. 3x10, 3x8/10, 3x30", 2xmax, 5 rep ogni 30" x 4 min): l\'app la mostra come nota e non conta le serie.',
       '"squat", settimana 1: il recupero "poco" non si legge (es. 1\'30, 2\', 40"): niente timer.',
       '"squat" non ha GIF né foto: l\'app mostrerà solo la ricerca su YouTube.',
     ]);

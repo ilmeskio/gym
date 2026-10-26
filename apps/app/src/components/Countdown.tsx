@@ -14,14 +14,16 @@ const LABELS: Record<Phase['kind'], string> = { prepare: 'Preparati', work: 'Vai
 
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
+/** How far the timer got: seconds of the first work phase, and work phases completed. */
+export type Progress = { worked: number; rounds: number };
+
 type Props = {
   phases: Phase[];
   /** When the timer started, in ms since the epoch: it may be earlier than now after a reload. */
   startedAt: number;
-  /** The timer reached the end; `worked` is the seconds of the work phase, if there is one. */
-  onDone: (worked: number) => void;
-  /** Stopped early: what the button says, and the seconds of work done so far. */
-  stop: { title: string; onStop: (worked: number) => void };
+  onDone: (progress: Progress) => void;
+  /** Stopped early: what the button says, and how far the timer got. */
+  stop: { title: string; onStop: (progress: Progress) => void };
 };
 
 export function Countdown({ phases, startedAt, onDone, stop }: Props) {
@@ -34,6 +36,8 @@ export function Countdown({ phases, startedAt, onDone, stop }: Props) {
   const workIndex = phases.findIndex((p) => p.kind === 'work');
   const workStart = phases.slice(0, Math.max(workIndex, 0)).reduce((s, p) => s + p.seconds, 0);
   const worked = workIndex < 0 ? 0 : Math.min(Math.max(Math.floor(elapsed - workStart), 0), phases[workIndex].seconds);
+  const workDone = (upTo: number) => phases.slice(0, upTo).filter((p) => p.kind === 'work').length;
+  const progress = { worked, rounds: workDone(state.index) };
 
   useEffect(() => {
     keepAwake(true);
@@ -51,7 +55,7 @@ export function Countdown({ phases, startedAt, onDone, stop }: Props) {
 
   const done = state.done;
   useEffect(() => {
-    if (done) onDone(workIndex < 0 ? 0 : phases[workIndex].seconds);
+    if (done) onDone({ worked: workIndex < 0 ? 0 : phases[workIndex].seconds, rounds: workDone(phases.length) });
   }, [done]);
 
   return (
@@ -59,6 +63,9 @@ export function Countdown({ phases, startedAt, onDone, stop }: Props) {
       <Text style={[styles.label, { fontSize: z.font(18) }, state.kind === 'work' && styles.workLabel]}>
         {LABELS[state.kind]}
       </Text>
+      {phases[state.index].label ? (
+        <Text style={[styles.what, { fontSize: z.font(18) }]}>{phases[state.index].label}</Text>
+      ) : null}
       <Text
         style={[
           styles.timer,
@@ -69,7 +76,7 @@ export function Countdown({ phases, startedAt, onDone, stop }: Props) {
         {clock(state.remaining)}
       </Text>
       <View style={styles.stop}>
-        <Button title={stop.title} variant="outline" onPress={() => stop.onStop(worked)} />
+        <Button title={stop.title} variant="outline" onPress={() => stop.onStop(progress)} />
       </View>
     </View>
   );
@@ -80,6 +87,7 @@ const styles = StyleSheet.create({
   work: { borderWidth: 2, borderColor: colors.accent },
   label: { color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 1 },
   workLabel: { color: colors.accent, fontWeight: '700' },
+  what: { color: colors.text, fontWeight: '600', textAlign: 'center' },
   // Sized by useSizes: 96 on a common phone, large enough to read from a bench or the floor.
   timer: { color: colors.text, fontWeight: '700', fontVariant: ['tabular-nums'] },
   prepare: { color: colors.warning },

@@ -1,8 +1,9 @@
 import { lastTime, setsOf } from '@gymapp/log';
 import {
   demos,
+  holdPhases,
+  intervalPhases,
   kgFromPlan,
-  PREPARE_SECONDS,
   repMaxAdvice,
   youtubeId,
   youtubeSearch,
@@ -14,7 +15,7 @@ import {
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { Button } from '../components/Button';
-import { Countdown } from '../components/Countdown';
+import { Countdown, type Progress } from '../components/Countdown';
 import { Demo } from '../components/Demo';
 import { ExerciseVideo } from '../components/ExerciseVideo';
 import { describeSet, SetRow, type Unit } from '../components/SetRow';
@@ -60,7 +61,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const done = setsOf(data.state, workoutId, exercise.id);
   const previous = lastTime(data.state, workoutId, exercise.id);
   const repMax = data.state.repMaxes[exercise.id];
-  // A timed hold (preparation, then the seconds) or the rest after a set; saved, so a reload resumes it.
+  // A timed hold (preparation, then the seconds), rounds against the clock, or the rest after a set; saved, so a reload resumes it.
   const [timer, setTimer] = useState(() => savedTimer(workoutId, exercise.id));
   function changeTimer(next?: Pick<SavedTimer, 'kind' | 'phases'>) {
     const started = next && { workoutId, exerciseId: exercise.id, ...next, startedAt: Date.now() };
@@ -84,6 +85,9 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const [chosenReps, setChosenReps] = useState<number>();
   const currentKg = chosenKg ?? proposedKg;
   const currentReps = chosenReps ?? proposedReps;
+  // In a superset, the seconds of the hold that follows each set.
+  const [chosenThen, setChosenThen] = useState<number>();
+  const currentThen = chosenThen ?? sets.then?.seconds;
 
   const saveRepMax = (kg: number) =>
     findRepMax && data.saveRepMax({ exerciseId: exercise.id, reps: findRepMax, kg, workoutId });
@@ -103,18 +107,23 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
 
   function startHold() {
     unlockSignals();
-    changeTimer({
-      kind: 'hold',
-      phases: [
-        { kind: 'prepare', seconds: PREPARE_SECONDS },
-        { kind: 'work', seconds: currentReps },
-      ],
-    });
+    changeTimer({ kind: 'hold', phases: holdPhases(sets, currentReps, currentThen) });
   }
 
   /** A hold stopped or finished: the seconds done become the set. */
-  function endHold(worked: number) {
+  function endHold({ worked }: Progress) {
     if (worked > 0) logSet(worked);
+    else changeTimer();
+  }
+
+  function startRounds() {
+    unlockSignals();
+    if (sets.intervals) changeTimer({ kind: 'rounds', phases: intervalPhases(sets.intervals) });
+  }
+
+  /** Rounds stopped or finished: the reps of the rounds done become one set. */
+  function endRounds({ rounds }: Progress) {
+    if (rounds > 0 && sets.intervals) logSet(rounds * sets.intervals.reps);
     else changeTimer();
   }
 
@@ -273,6 +282,14 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
             onDone={endHold}
             stop={{ title: 'Stop', onStop: endHold }}
           />
+        ) : timer?.kind === 'rounds' ? (
+          <Countdown
+            key={timer.startedAt}
+            phases={timer.phases}
+            startedAt={timer.startedAt}
+            onDone={endRounds}
+            stop={{ title: 'Stop', onStop: endRounds }}
+          />
         ) : timer?.kind === 'rest' ? (
           <Countdown
             key={timer.startedAt}
@@ -298,15 +315,30 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
                   onChange={setChosenReps}
                 />
               </View>
+              {sets.then && currentThen !== undefined ? (
+                <View style={styles.group}>
+                  <Text style={[styles.label, { fontSize: z.font(12) }]}>
+                    {sets.then.name ?? 'Secondo esercizio'}
+                    {sets.then.perSide ? ', per lato' : ''}
+                  </Text>
+                  <Stepper label="Secondi del secondo esercizio" value={currentThen} onChange={setChosenThen} />
+                </View>
+              ) : null}
             </View>
             {unit === 'seconds' && !noRest ? (
               <Button title={`Avvia ${currentReps}" (5" per prepararti)`} onPress={startHold} />
+            ) : null}
+            {sets.intervals && !noRest ? (
+              <Button
+                title={`Avvia ${sets.intervals.minutes}' a giri da ${sets.intervals.every}" (5" per prepararti)`}
+                onPress={startRounds}
+              />
             ) : null}
             <Button
               title={
                 totalSets ? `Registra serie ${done.length + 1} di ${totalSets}` : `Registra serie ${done.length + 1}`
               }
-              variant={unit === 'seconds' && !noRest ? 'outline' : 'solid'}
+              variant={(unit === 'seconds' || sets.intervals) && !noRest ? 'outline' : 'solid'}
               onPress={() => logSet()}
             />
             {findRepMax && last ? (
