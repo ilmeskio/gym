@@ -29,6 +29,7 @@ const ANIMATIONS: Gif[] = [
   { id: 'hollow-hold', name: 'hollow body hold (barchetta)', source: 'gym' },
   { id: 'straight-arm-plank', name: 'straight arm plank (plank braccia tese)', source: 'gym' },
   { id: 'horizontal-leg-press', name: 'horizontal leg press (leg press orizzontale)', source: 'gym' },
+  { id: 'band-front-hold', name: 'band front raise hold (fermo alla fronte presa supina con loop band)', source: 'gym' },
   // Made from open drawings, with a close-up of the grip.
   {
     id: 'underhand-pulldown',
