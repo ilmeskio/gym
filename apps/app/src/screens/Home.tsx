@@ -10,6 +10,8 @@ import { colors, space } from '../theme';
 type Props = {
   plan: Plan;
   week: number;
+  /** The days already done in the chosen week, with their workout. */
+  done: Record<string, Workout>;
   /** The plan's start date, `YYYY-MM-DD`. */
   startDate?: string;
   next: string;
@@ -88,6 +90,7 @@ export function Home(props: Props) {
       <Text style={styles.label}>Allenamento</Text>
       {plan.days.map((day) => {
         const suggested = !inProgress && day.id === next;
+        const doneOn = props.done[day.id];
         return (
           <Pressable
             key={day.id}
@@ -98,6 +101,9 @@ export function Home(props: Props) {
             <View style={{ flex: 1 }}>
               {suggested ? <Text style={styles.suggested}>Tocca a questo</Text> : null}
               <Text style={styles.dayTitle}>{day.title}</Text>
+              {doneOn ? (
+                <Text style={styles.doneOn}>✓ Fatto {longDay(doneOn.startedAt)}</Text>
+              ) : null}
               <Text style={styles.dayDetail} numberOfLines={2}>
                 {day.exercises.length} esercizi · {day.exercises.map((e) => e.name.trim()).join(', ')}
               </Text>
@@ -163,6 +169,7 @@ const styles = StyleSheet.create({
     marginBottom: space(1),
   },
   dayTitle: { color: colors.text, fontSize: 18, fontWeight: '600' },
+  doneOn: { color: colors.accent, fontSize: 14, marginTop: space(1) },
   dayDetail: { color: colors.textMuted, marginTop: space(1) },
   arrow: { color: colors.textMuted, fontSize: 28 },
   more: { flexDirection: 'row', gap: space(3), marginTop: space(2) },

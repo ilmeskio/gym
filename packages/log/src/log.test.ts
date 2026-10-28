@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   activePlan,
   confirmSent,
+  doneInWeek,
   editSet,
   emptyState,
   finishWorkout,
+  firstOpenWeek,
   fromStorage,
   history,
   lastTime,
@@ -104,6 +106,35 @@ describe('nextDay', () => {
       effort: 3,
     });
     expect(nextDay(s, 'new', days)).toBe('A');
+  });
+});
+
+describe('weeks done', () => {
+  const days = ['A', 'B', 'C'];
+  const done = (state: State, id: string, dayId: string, week: number, at: string, planId = 'p1') =>
+    finishWorkout(startWorkout(state, { id, planId, dayId, week, at }), id, { at, effort: 3 });
+
+  it("tells which of the week's days are done", () => {
+    let s = done(emptyState(), 'w1', 'A', 1, '2026-10-22T18:00:00Z');
+    s = done(s, 'w2', 'B', 1, '2026-10-24T11:00:00Z');
+    s = done(s, 'w3', 'A', 2, '2026-10-29T18:00:00Z');
+    s = done(s, 'w4', 'C', 1, '2026-10-20T18:00:00Z', 'old');
+    s = startWorkout(s, { id: 'w5', planId: 'p1', dayId: 'C', week: 1, at: '2026-10-27T18:00:00Z' });
+    expect(Object.keys(doneInWeek(s, 'p1', 1)).sort()).toEqual(['A', 'B']);
+    expect(doneInWeek(s, 'p1', 1).A.id).toBe('w1');
+    expect(Object.keys(doneInWeek(s, 'p1', 2))).toEqual(['A']);
+  });
+
+  it('moves on to the next week once every day of a week is done', () => {
+    let s = emptyState();
+    expect(firstOpenWeek(s, 'p1', days, 7)).toBe(1);
+    s = done(s, 'w1', 'A', 1, '2026-10-22T18:00:00Z');
+    s = done(s, 'w2', 'B', 1, '2026-10-24T11:00:00Z');
+    expect(firstOpenWeek(s, 'p1', days, 7)).toBe(1);
+    s = done(s, 'w3', 'C', 1, '2026-10-27T18:00:00Z');
+    expect(firstOpenWeek(s, 'p1', days, 7)).toBe(2);
+    expect(firstOpenWeek(s, 'other', days, 7)).toBe(1);
+    expect(firstOpenWeek(s, 'p1', days, 1)).toBe(1);
   });
 });
 
