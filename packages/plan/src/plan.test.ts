@@ -313,7 +313,7 @@ describe('findAnimations', () => {
       },
     ]);
     expect(findAnimations('lat machine presa prona').map((a) => a.id)).toEqual(['wide-grip-pulldown']);
-    expect(findAnimations('fermo alla fronte').map((a) => a.id)).toEqual(['band-front-hold']);
+    expect(findAnimations('fermo alla fronte').map((a) => a.id)).toEqual(['band-chin-up-hold']);
     expect(findAnimations('dumbbell squat')).toEqual([]);
   });
 });
