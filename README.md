@@ -97,7 +97,8 @@ nascono sul dispositivo, quindi un invio ripetuto non duplica.
 
 Un carico "trova N rm" apre la ricerca del carico massimo per N ripetizioni: dopo ogni serie
 l'app dice se salire o scendere, e la serie da esattamente N ripetizioni fissa il carico, che le
-settimane seguenti propongono come riferimento.
+settimane seguenti propongono come riferimento. Anche in un allenamento segnato dopo, la serie più
+pesante da esattamente N ripetizioni fissa l'RM, se un allenamento più recente non ne ha già uno.
 
 ## Supabase
 
@@ -149,7 +150,8 @@ spunta con la data. Da lì si può anche ricominciare da oggi o scegliere un'alt
   nello stesso timer, un lato alla volta se è scritto "a lato" o "per lato".
 - Un superset di due esercizi a ripetizioni (`curl … in super set con push down …`, `3x8/12+8/12`)
   ha carico e ripetizioni per ciascun esercizio, e un "trova N rm" cerca l'RM di entrambi. Le serie
-  del secondo si registrano con l'id dell'esercizio seguito da `~2`.
+  del secondo esercizio di un superset, anche della tenuta che segue ogni serie (il side plank), si
+  registrano con l'id dell'esercizio seguito da `~2`.
 - I giri contro il tempo (`5 rep ogni 30" x 4 min`) hanno un timer che segnala l'inizio di ogni
   giro; le ripetizioni dei giri fatti diventano una serie.
 

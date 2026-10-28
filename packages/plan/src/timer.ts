@@ -38,6 +38,17 @@ export function cuesBetween(phases: Phase[], from: number, to: number): Cue[] {
   return cues.filter((c) => c.at > from && c.at <= to).map((c) => c.cue);
 }
 
+/** The seconds done in each work phase, `elapsed` seconds after the start. */
+export function workedSeconds(phases: Phase[], elapsed: number): number[] {
+  const worked: number[] = [];
+  let start = 0;
+  for (const phase of phases) {
+    if (phase.kind === 'work') worked.push(Math.min(Math.max(Math.floor(elapsed - start), 0), phase.seconds));
+    start += phase.seconds;
+  }
+  return worked;
+}
+
 /**
  * A running timer saved on the device, so a reload finds it: the moment it started (ms since
  * the epoch) and its phases, not the seconds left.

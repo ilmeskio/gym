@@ -15,8 +15,10 @@ import {
   mergeFromServer,
   moveToExercise,
   nextDay,
+  nextOpenDay,
   removeSet,
   removeWorkout,
+  repMaxIn,
   saveRepMax,
   setsOf,
   setStartDate,
@@ -135,6 +137,30 @@ describe('weeks done', () => {
     expect(firstOpenWeek(s, 'p1', days, 7)).toBe(2);
     expect(firstOpenWeek(s, 'other', days, 7)).toBe(1);
     expect(firstOpenWeek(s, 'p1', days, 1)).toBe(1);
+  });
+});
+
+describe('nextOpenDay', () => {
+  it('skips the days already done in the week, and has none when the week is complete', () => {
+    const days = ['A', 'B', 'C'];
+    expect(nextOpenDay('A', days, [])).toBe('A');
+    expect(nextOpenDay('A', days, ['A'])).toBe('B');
+    expect(nextOpenDay('C', days, ['C', 'A'])).toBe('B');
+    expect(nextOpenDay('A', days, ['A', 'B', 'C'])).toBeUndefined();
+  });
+});
+
+describe('repMaxIn', () => {
+  it('takes the heaviest load among the sets of exactly N reps', () => {
+    const sets = [
+      { kg: 50, reps: 12 },
+      { kg: 60, reps: 12 },
+      { kg: 75, reps: 9 },
+      { kg: 70, reps: 12 },
+      { kg: 40, reps: 15 },
+    ];
+    expect(repMaxIn(sets, 12)).toBe(70);
+    expect(repMaxIn(sets, 10)).toBeUndefined();
   });
 });
 
