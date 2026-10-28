@@ -1,10 +1,11 @@
-import { lastTime, setsOf } from '@gymapp/log';
+import { lastTime, setsOf, type LoggedSet } from '@gymapp/log';
 import {
   demos,
   holdPhases,
   intervalPhases,
   kgFromPlan,
   repMaxAdvice,
+  secondPartId,
   youtubeId,
   youtubeSearch,
   type Exercise as PlanExercise,
@@ -61,6 +62,11 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const done = setsOf(data.state, workoutId, exercise.id);
   const previous = lastTime(data.state, workoutId, exercise.id);
   const repMax = data.state.repMaxes[exercise.id];
+  // A superset of two exercises with reps: the second has its own load and reps, logged under an id of its own.
+  const second = step.superset && !sets.then ? { id: secondPartId(exercise.id), name: step.superset[1] } : undefined;
+  const doneSecond = second ? setsOf(data.state, workoutId, second.id) : [];
+  const previousSecond = second && lastTime(data.state, workoutId, second.id);
+  const repMaxSecond = second && data.state.repMaxes[second.id];
   // A timed hold (preparation, then the seconds), rounds against the clock, or the rest after a set; saved, so a reload resumes it.
   const [timer, setTimer] = useState(() => savedTimer(workoutId, exercise.id));
   function changeTimer(next?: Pick<SavedTimer, 'kind' | 'phases'>) {
@@ -71,7 +77,12 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
 
   const totalSets = findRepMax ? undefined : sets.sets?.max;
   const unit: Unit = sets.target?.kind === 'seconds' ? 'seconds' : 'reps';
-  const repMaxFound = findRepMax !== undefined && repMax?.workoutId === workoutId && repMax.reps === findRepMax;
+  const foundIn = (id: string) => {
+    const found = data.state.repMaxes[id];
+    return findRepMax !== undefined && found?.workoutId === workoutId && found.reps === findRepMax;
+  };
+  // In a superset the search goes on until both loads are found.
+  const repMaxFound = foundIn(exercise.id) && (!second || foundIn(second.id));
   const finished = findRepMax ? repMaxFound : totalSets === undefined || done.length >= totalSets;
   // Without a prescribed number of sets, sets are logged freely and you move on whenever you like.
   const toLog = findRepMax ? !repMaxFound : totalSets === undefined || done.length < totalSets;
@@ -85,21 +96,37 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const [chosenReps, setChosenReps] = useState<number>();
   const currentKg = chosenKg ?? proposedKg;
   const currentReps = chosenReps ?? proposedReps;
+  const lastSecond = doneSecond.at(-1);
+  const proposedSecondKg =
+    lastSecond?.kg ??
+    previousSecond?.sets.at(-1)?.kg ??
+    (useRepMax && repMaxSecond ? repMaxSecond.kg : (kgFromPlan(p.load) ?? 0));
+  const proposedSecondReps = findRepMax ?? sets.thenReps?.max ?? lastSecond?.reps ?? proposedReps;
+  const [chosenSecondKg, setChosenSecondKg] = useState<number>();
+  const [chosenSecondReps, setChosenSecondReps] = useState<number>();
+  const currentSecondKg = chosenSecondKg ?? proposedSecondKg;
+  const currentSecondReps = chosenSecondReps ?? proposedSecondReps;
   // In a superset, the seconds of the hold that follows each set.
   const [chosenThen, setChosenThen] = useState<number>();
   const currentThen = chosenThen ?? sets.then?.seconds;
 
-  const saveRepMax = (kg: number) =>
-    findRepMax && data.saveRepMax({ exerciseId: exercise.id, reps: findRepMax, kg, workoutId });
+  const saveRepMax = (exerciseId: string, kg: number) =>
+    findRepMax && data.saveRepMax({ exerciseId, reps: findRepMax, kg, workoutId });
 
   function logSet(reps = currentReps) {
     unlockSignals();
-    const next = { kg: currentKg, reps };
-    data.logSet({ workoutId, exerciseId: exercise.id, ...next });
+    const parts = [{ exerciseId: exercise.id, kg: currentKg, reps }];
+    if (second) parts.push({ exerciseId: second.id, kg: currentSecondKg, reps: currentSecondReps });
+    let searching = false;
+    for (const part of parts) {
+      data.logSet({ workoutId, ...part });
+      if (findRepMax === undefined) continue;
+      if (repMaxAdvice(findRepMax, part.reps) === 'found') saveRepMax(part.exerciseId, part.kg);
+      else if (!foundIn(part.exerciseId)) searching = true;
+    }
     setChosenReps(undefined);
-    const found = findRepMax !== undefined && repMaxAdvice(findRepMax, next.reps) === 'found';
-    if (found) saveRepMax(next.kg);
-    const more = findRepMax ? !found : totalSets !== undefined && done.length + 1 < totalSets;
+    setChosenSecondReps(undefined);
+    const more = findRepMax ? searching : totalSets !== undefined && done.length + 1 < totalSets;
     if (more && step.restSeconds && !noRest)
       changeTimer({ kind: 'rest', phases: [{ kind: 'rest', seconds: step.restSeconds }] });
     else changeTimer();
@@ -127,13 +154,48 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
     else changeTimer();
   }
 
+  /** Undoes the last set, of both exercises in a superset. */
   function undoLast() {
     if (last) data.removeSet(last.id);
+    if (lastSecond && doneSecond.length === done.length) data.removeSet(lastSecond.id);
     changeTimer();
   }
 
+  /** What to do next in the search of the N RM, or the load found. */
+  function adviceFor(exerciseId: string, lastSet: LoggedSet | undefined) {
+    const found = data.state.repMaxes[exerciseId];
+    if (foundIn(exerciseId)) return `${ADVICE.found} Il tuo ${findRepMax}RM è ${formatKg(found!.kg)}.`;
+    return lastSet && findRepMax ? ADVICE[repMaxAdvice(findRepMax, lastSet.reps)] : '';
+  }
+
+  const repMaxMark = (s: LoggedSet) =>
+    findRepMax ? (
+      <Text style={[styles.muted, repMaxAdvice(findRepMax, s.reps) === 'found' && { color: colors.accent }]}>
+        {ADVICE_MARK[repMaxAdvice(findRepMax, s.reps)]}
+      </Text>
+    ) : undefined;
+
+  const setChips = (list: LoggedSet[], partUnit: Unit) =>
+    list.map((s, i) => (
+      <SetRow
+        key={s.id}
+        compact
+        set={s}
+        number={i + 1}
+        unit={partUnit}
+        onSave={(change) => data.editSet(s.id, change)}
+        onDelete={() => data.removeSet(s.id)}
+        mark={repMaxMark(s)}
+      />
+    ));
+
   let planLoad = p.load;
-  if (useRepMax) {
+  if (useRepMax && second) {
+    planLoad =
+      repMax && repMaxSecond
+        ? `${formatKg(repMax.kg)} + ${formatKg(repMaxSecond.kg)} (i tuoi ${useRepMax}RM)`
+        : `i tuoi ${useRepMax}RM, non ancora registrati`;
+  } else if (useRepMax) {
     planLoad = repMax
       ? `${formatKg(repMax.kg)} (il tuo ${useRepMax}RM)`
       : `il tuo ${useRepMax}RM, non ancora registrato`;
@@ -144,7 +206,12 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
     sets.sets && sets.target && !findRepMax
       ? `${sets.sets.min === sets.sets.max ? sets.sets.max : `${sets.sets.min}-${sets.sets.max}`} × ${describeTarget(sets.target)}`
       : undefined;
-  const instructions = sets.note ?? (!sets.sets ? p.setsReps : undefined);
+  const thenText = sets.thenReps && describeTarget({ kind: 'reps', ...sets.thenReps });
+  // A note with only the reps of the second exercise of a superset would repeat the sets chip.
+  const instructions =
+    sets.thenReps && /^\+\s*[\d/]+$/.test(sets.note ?? '')
+      ? undefined
+      : (sets.note ?? (!sets.sets ? p.setsReps : undefined));
 
   // One column as tall as the window: what to do at the top, the actions always at the bottom.
   // Sizes follow the window (useSizes); on a screen too short for everything, the column scrolls.
@@ -208,7 +275,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
           </Text>
         ) : null}
         <View style={[styles.chips, { gap: z.space(2) }]}>
-          {setsText ? <Chip value={setsText} highlight /> : null}
+          {setsText ? <Chip value={thenText ? `${setsText} + ${thenText}` : setsText} highlight /> : null}
           {planLoad && !findRepMax ? <Chip label="Carico" value={planLoad} /> : null}
           {p.rest ? <Chip label="Recupero" value={p.rest} /> : null}
           {p.tut ? <Chip label="Esecuzione" value={p.tut} /> : null}
@@ -219,8 +286,14 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
         {exercise.videoToSend ? <Line label="Video al trainer" value={exercise.videoToSend} warning /> : null}
         {previous ? (
           <Line
-            label={`Ultima volta, ${shortDate(previous.workout.startedAt)}`}
+            label={`Ultima volta${second ? ` ${step.superset![0]}` : ''}, ${shortDate(previous.workout.startedAt)}`}
             value={previous.sets.map((s) => describeSet(s, unit)).join(' · ')}
+          />
+        ) : null}
+        {second && previousSecond ? (
+          <Line
+            label={`Ultima volta ${second.name}, ${shortDate(previousSecond.workout.startedAt)}`}
+            value={previousSecond.sets.map((s) => describeSet(s, 'reps')).join(' · ')}
           />
         ) : null}
       </View>
@@ -234,28 +307,16 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
               ))}
             </View>
           ) : null}
+          {second && done.length ? (
+            <>
+              <PartLabel name={step.superset![0]} />
+              <View style={[styles.chips, { gap: z.space(2) }]}>{setChips(done, unit)}</View>
+              <PartLabel name={second.name} />
+            </>
+          ) : null}
           {done.length ? (
             <View style={[styles.chips, { gap: z.space(2) }]}>
-              {done.map((s, i) => (
-                <SetRow
-                  key={s.id}
-                  compact
-                  set={s}
-                  number={i + 1}
-                  unit={unit}
-                  onSave={(change) => data.editSet(s.id, change)}
-                  onDelete={() => data.removeSet(s.id)}
-                  mark={
-                    findRepMax ? (
-                      <Text
-                        style={[styles.muted, repMaxAdvice(findRepMax, s.reps) === 'found' && { color: colors.accent }]}
-                      >
-                        {ADVICE_MARK[repMaxAdvice(findRepMax, s.reps)]}
-                      </Text>
-                    ) : undefined
-                  }
-                />
-              ))}
+              {second ? setChips(doneSecond, 'reps') : setChips(done, unit)}
               {last ? (
                 <Pressable accessibilityRole="button" onPress={undoLast} hitSlop={8}>
                   <Text style={[styles.link, { fontSize: z.font(14) }]}>Annulla l'ultima</Text>
@@ -263,13 +324,23 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
               ) : null}
             </View>
           ) : null}
-          {findRepMax && last ? (
-            <Text style={[styles.value, { fontSize: z.font(15) }, repMaxFound && { color: colors.accent }]}>
-              {repMaxFound
-                ? `${ADVICE.found} Il tuo ${findRepMax}RM è ${formatKg(repMax!.kg)}.`
-                : ADVICE[repMaxAdvice(findRepMax, last.reps)]}
-            </Text>
-          ) : null}
+          {findRepMax && last
+            ? (second
+                ? [
+                    { id: exercise.id, name: step.superset![0], lastSet: last },
+                    { id: second.id, name: second.name, lastSet: lastSecond },
+                  ]
+                : [{ id: exercise.id, name: undefined, lastSet: last }]
+              ).map(({ id, name, lastSet }) => (
+                <Text
+                  key={id}
+                  style={[styles.value, { fontSize: z.font(15) }, foundIn(id) && { color: colors.accent }]}
+                >
+                  {name ? <Text style={styles.partName}>{name}: </Text> : null}
+                  {adviceFor(id, lastSet)}
+                </Text>
+              ))
+            : null}
         </View>
       ) : null}
 
@@ -300,6 +371,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
           />
         ) : toLog ? (
           <>
+            {second ? <PartLabel name={step.superset![0]} /> : null}
             <View style={[styles.fields, { gap: z.space(2) }]}>
               <View style={styles.group}>
                 <Text style={[styles.label, { fontSize: z.font(12) }]}>Carico</Text>
@@ -325,6 +397,31 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
                 </View>
               ) : null}
             </View>
+            {second ? (
+              <>
+                <PartLabel name={second.name} />
+                <View style={[styles.fields, { gap: z.space(2) }]}>
+                  <View style={styles.group}>
+                    <Text style={[styles.label, { fontSize: z.font(12) }]}>Carico</Text>
+                    <Stepper
+                      label={`Carico ${second.name}`}
+                      unit="kg"
+                      zero="corpo libero"
+                      value={currentSecondKg}
+                      onChange={setChosenSecondKg}
+                    />
+                  </View>
+                  <View style={styles.group}>
+                    <Text style={[styles.label, { fontSize: z.font(12) }]}>Ripetizioni</Text>
+                    <Stepper
+                      label={`Ripetizioni ${second.name}`}
+                      value={currentSecondReps}
+                      onChange={setChosenSecondReps}
+                    />
+                  </View>
+                </View>
+              </>
+            ) : null}
             {unit === 'seconds' && !noRest ? (
               <Button title={`Avvia ${currentReps}" (5" per prepararti)`} onPress={startHold} />
             ) : null}
@@ -343,9 +440,16 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
             />
             {findRepMax && last ? (
               <Button
-                title={`Va bene così: ${formatKg(last.kg)} è il mio ${findRepMax}RM`}
+                title={
+                  second
+                    ? `Va bene così: questi sono i miei ${findRepMax}RM`
+                    : `Va bene così: ${formatKg(last.kg)} è il mio ${findRepMax}RM`
+                }
                 variant="outline"
-                onPress={() => saveRepMax(last.kg)}
+                onPress={() => {
+                  if (!foundIn(exercise.id)) saveRepMax(exercise.id, last.kg);
+                  if (second && lastSecond && !foundIn(second.id)) saveRepMax(second.id, lastSecond.kg);
+                }}
               />
             ) : null}
           </>
@@ -446,6 +550,12 @@ function Media({ exercise, minHeight }: { exercise: PlanExercise; minHeight: num
   );
 }
 
+/** The name of one exercise of a superset, over its sets or its fields. */
+function PartLabel({ name }: { name: string }) {
+  const z = useSizes();
+  return <Text style={[styles.partName, { fontSize: z.font(14) }]}>{name}</Text>;
+}
+
 /** A short prescription value: sets, load, rest. */
 function Chip({ label, value, highlight }: { label?: string; value: string; highlight?: boolean }) {
   const z = useSizes();
@@ -494,6 +604,7 @@ const styles = StyleSheet.create({
   link: { color: colors.textMuted, textDecorationLine: 'underline' },
   name: { color: colors.text, fontWeight: '700', textTransform: 'capitalize' },
   repMaxTitle: { color: colors.accent, fontWeight: '700' },
+  partName: { color: colors.text, fontWeight: '600', textTransform: 'capitalize' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   chip: { borderRadius: 8, backgroundColor: colors.surface },
   chipHighlight: { backgroundColor: colors.accentDark },

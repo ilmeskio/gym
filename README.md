@@ -144,6 +144,9 @@ un'altra settimana.
 - Le serie a tempo (`3x30"`) hanno un timer: 5" per prepararsi, poi i secondi, con i bip a 3-2-1.
   Una tenuta che segue ogni serie, come in un superset (`3x20/30"+20" a lato side plank`), continua
   nello stesso timer, un lato alla volta se è scritto "a lato" o "per lato".
+- Un superset di due esercizi a ripetizioni (`curl … in super set con push down …`, `3x8/12+8/12`)
+  ha carico e ripetizioni per ciascun esercizio, e un "trova N rm" cerca l'RM di entrambi. Le serie
+  del secondo si registrano con l'id dell'esercizio seguito da `~2`.
 - I giri contro il tempo (`5 rep ogni 30" x 4 min`) hanno un timer che segnala l'inizio di ogni
   giro; le ripetizioni dei giri fatti diventano una serie.
 
