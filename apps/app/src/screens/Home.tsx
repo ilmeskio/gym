@@ -18,6 +18,8 @@ type Props = {
   inProgress?: Workout;
   sync: SyncStatus;
   demo: boolean;
+  /** A new version has been published: the banner that loads it. */
+  onUpdate?: () => void;
   onWeek: (week: number) => void;
   onRestart: () => void;
   onChoose: (dayId: string) => void;
@@ -48,6 +50,12 @@ export function Home(props: Props) {
     <ScrollView contentContainerStyle={styles.content}>
       <Text style={styles.title}>{plan.title}</Text>
       {props.demo ? <Text style={styles.demo}>Demo senza account</Text> : null}
+      {props.onUpdate ? (
+        <Pressable accessibilityRole="button" onPress={props.onUpdate} style={styles.update}>
+          <Text style={styles.updateTitle}>Nuova versione disponibile</Text>
+          <Text style={styles.muted}>Tocca per aggiornare</Text>
+        </Pressable>
+      ) : null}
       {startDate ? (
         <View style={styles.row}>
           <Text style={styles.muted}>Iniziata il {shortDate(startDate)}</Text>
@@ -141,6 +149,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: space(3), alignItems: 'baseline' },
   muted: { color: colors.textMuted, fontSize: 15 },
   link: { color: colors.textMuted, textDecorationLine: 'underline', fontSize: 15 },
+  update: { borderWidth: 1, borderColor: colors.accent, borderRadius: 12, padding: space(4), gap: space(1) },
+  updateTitle: { color: colors.accent, fontSize: 17, fontWeight: '600' },
   inProgress: { backgroundColor: colors.accentDark, borderRadius: 12, padding: space(4), gap: space(2) },
   inProgressTitle: { color: colors.text, fontSize: 18, fontWeight: '600' },
   label: { color: colors.textMuted, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, marginTop: space(2) },

@@ -161,4 +161,7 @@ Ogni push su `main` esegue typecheck, test ed export web, e pubblica con GitHub 
 `apps/app/dist` su GitHub Pages e l'API come Edge Function su Supabase (segreto del repository
 `SUPABASE_ACCESS_TOKEN`, un access token personale di Supabase). Il sito vive sotto `/gym` (`experiments.baseUrl` in `apps/app/app.json`):
 il nome del repository GitHub deve essere `gym`. `404.html` è una copia dell'app, così
-anche percorsi come `/gym/oauth/consent` la aprono.
+anche percorsi come `/gym/oauth/consent` la aprono. L'app installata sulla schermata Home non ha un pulsante per
+ricaricare: all'apertura e a ogni ritorno in primo piano confronta il suo bundle (`index-<hash>.js`)
+con quello della pagina pubblicata e, se è cambiato, la schermata iniziale propone "Nuova versione
+disponibile".

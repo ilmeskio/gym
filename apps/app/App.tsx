@@ -33,6 +33,7 @@ import { SignIn } from './src/screens/SignIn';
 import { WorkoutDetail } from './src/screens/WorkoutDetail';
 import { keepAwake } from './src/signal';
 import { colors } from './src/theme';
+import { loadNewVersion, useNewVersion } from './src/useNewVersion';
 
 /** The demo's plan, built into the app; its id is fixed so demo workouts can refer to it. */
 const EXAMPLE: StoredPlan = {
@@ -79,6 +80,7 @@ function Content() {
     (w.planId && (w.planId === EXAMPLE.id ? EXAMPLE : state.plans[w.planId])?.plan) || plan;
   const startDate = current && state.preferences.planStarts[current.id];
   const inProgress = workoutInProgress(state);
+  const newVersion = useNewVersion();
   // The week of the workout in progress; otherwise the calendar's, or the next one once every day of a week is done.
   const week =
     chosenWeek ??
@@ -247,6 +249,7 @@ function Content() {
           inProgress={inProgress}
           sync={data.sync}
           demo={demo}
+          onUpdate={newVersion ? loadNewVersion : undefined}
           onWeek={setChosenWeek}
           onRestart={() => {
             setStart(todayDate());
