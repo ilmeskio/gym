@@ -45,7 +45,15 @@ export type ThenHold = { seconds: number; perSide: boolean; name?: string };
 /** Rounds against the clock: `reps` every `every` seconds, for `minutes`. */
 export type Intervals = { reps: number; every: number; minutes: number };
 
-export type SetsReading = { sets?: Range; target?: Target; note?: string; then?: ThenHold; intervals?: Intervals };
+export type SetsReading = {
+  sets?: Range;
+  target?: Target;
+  note?: string;
+  then?: ThenHold;
+  /** The reps of the exercise done straight after each set, in a superset: `3x8/12+8/12`. */
+  thenReps?: Range;
+  intervals?: Intervals;
+};
 
 const range = (min: string, max?: string): Range => ({
   min: Number(min),
@@ -54,6 +62,7 @@ const range = (min: string, max?: string): Range => ({
 
 const SETS = /^(\d+)(?:\/(\d+))?\s*x\s*(?:(max)|(\d+)(?:\/(\d+))?\s*(")?)/i;
 const THEN_HOLD = /^\+\s*(\d+)\s*"\s*(a lato|per lato)?\s*(.*)$/i;
+const THEN_REPS = /^\+\s*(\d+)(?:\/(\d+))?(?![\d/]|\s*")/;
 const INTERVALS = /^(\d+)\s*rep\w*\s+ogni\s+(\d+)\s*"\s*x\s*(\d+)\s*min/i;
 
 export function readSets(text: string | undefined): SetsReading {
@@ -73,8 +82,27 @@ export function readSets(text: string | undefined): SetsReading {
   if (note) reading.note = note;
   const then = THEN_HOLD.exec(note);
   if (then) reading.then = { seconds: Number(then[1]), perSide: !!then[2], ...(then[3] && { name: then[3] }) };
+  const thenReps = !then && THEN_REPS.exec(note);
+  if (thenReps) reading.thenReps = range(thenReps[1], thenReps[2]);
   return reading;
 }
+
+const SUPERSET = /\s+in\s+super\s*set\s+con\s+/i;
+
+/** The two exercises of a superset, from a name like `curl … in super set con push down …`. */
+export function supersetParts(name: string): [string, string] | undefined {
+  const parts = name.trim().split(SUPERSET);
+  return parts.length === 2 && parts[0] && parts[1] ? [parts[0], parts[1]] : undefined;
+}
+
+// The sets of the second exercise of a superset are logged on their own, under an id of their own.
+const SECOND_PART = '~2';
+
+export const secondPartId = (exerciseId: string) => `${exerciseId}${SECOND_PART}`;
+
+/** The plan's exercise a logged exercise id belongs to: itself, or the superset of a second part. */
+export const partOwner = (exerciseId: string) =>
+  exerciseId.endsWith(SECOND_PART) ? exerciseId.slice(0, -SECOND_PART.length) : exerciseId;
 
 const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -160,6 +188,8 @@ export type Step = {
   findRepMax?: number;
   /** The load to use is the N RM found in an earlier week. */
   useRepMax?: number;
+  /** A superset: the names of its two exercises, each with its own load and reps. */
+  superset?: [string, string];
 };
 
 const REP_MAX_SEARCH = /^trova\s*(\d+)\s*rm/i;
@@ -211,6 +241,7 @@ export function session(plan: Plan, dayId: string, week: number): Step[] {
       restSeconds: readRest(p.rest),
       findRepMax: readRepMaxSearch(p.load),
       useRepMax: p.load ? undefined : lastRepMaxSearch(exercise, week),
+      superset: supersetParts(exercise.name),
     };
   });
 }

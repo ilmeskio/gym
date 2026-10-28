@@ -10,10 +10,13 @@ import {
   prescription,
   readRepMaxSearch,
   readRest,
+  partOwner,
   readSets,
   repMaxAdvice,
+  secondPartId,
   session,
   stepDetails,
+  supersetParts,
   youtubeId,
 } from './index.ts';
 import type { Plan } from './index.ts';
@@ -48,12 +51,15 @@ describe('readSets', () => {
     });
   });
 
-  it('keeps the second half of a superset as a note', () => {
+  it('reads the reps of the exercise that follows in a superset', () => {
     expect(readSets('3x8/12+8/12')).toEqual({
       sets: { min: 3, max: 3 },
       target: { kind: 'reps', min: 8, max: 12 },
       note: '+8/12',
+      thenReps: { min: 8, max: 12 },
     });
+    expect(readSets('3x10+12').thenReps).toEqual({ min: 12, max: 12 });
+    expect(readSets('3x20/30"+20" a lato side plank').thenReps).toBeUndefined();
   });
 
   it('reads a timed hold that follows in a superset, per side', () => {
@@ -190,6 +196,48 @@ describe('session', () => {
   it('rejects a missing day or week', () => {
     expect(() => session(plan, 'Z', 1)).toThrow();
     expect(() => session(plan, 'A', 4)).toThrow();
+  });
+});
+
+describe('supersetParts', () => {
+  it('splits the name of a superset into its two exercises', () => {
+    expect(supersetParts('curl presa martello in super set con push down corda al cavo alto')).toEqual([
+      'curl presa martello',
+      'push down corda al cavo alto',
+    ]);
+    expect(supersetParts('barchetta in superset con side plank')).toEqual(['barchetta', 'side plank']);
+    expect(supersetParts('curl manubri in piedi')).toBeUndefined();
+  });
+
+  it("gives the second exercise its own id, which leads back to the plan's exercise", () => {
+    expect(secondPartId('curl-push-down')).toBe('curl-push-down~2');
+    expect(partOwner('curl-push-down~2')).toBe('curl-push-down');
+    expect(partOwner('curl-push-down')).toBe('curl-push-down');
+  });
+
+  it('marks the steps of a superset, even in the week the load is searched', () => {
+    const superset: Plan = {
+      title: 'Superset',
+      startDate: '2026-01-05',
+      weekCount: 2,
+      days: [
+        {
+          id: 'C',
+          title: 'C',
+          exercises: [
+            {
+              id: 'curl-push-down',
+              name: 'curl presa martello in super set con push down',
+              weeks: [{ load: 'trova 12rm entrambi', setsReps: 'limitati a questo' }, { setsReps: '3x8/12+8/12' }],
+            },
+          ],
+        },
+      ],
+    };
+    expect(session(superset, 'C', 1)[0].superset).toEqual(['curl presa martello', 'push down']);
+    expect(session(superset, 'C', 1)[0].findRepMax).toBe(12);
+    expect(session(superset, 'C', 2)[0].sets.thenReps).toEqual({ min: 8, max: 12 });
+    expect(session(plan, 'A', 1)[0].superset).toBeUndefined();
   });
 });
 

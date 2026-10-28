@@ -145,6 +145,16 @@ describe('MCP tools', () => {
       reps: 30,
       loggedAt: '2026-10-02T18:05:00Z',
     });
+    // The second exercise of a superset is logged under its own id, but it belongs to the squat.
+    data.sets.set('s2', {
+      id: 's2',
+      workoutId: 'w1',
+      exerciseId: 'squat~2',
+      number: 1,
+      kg: 10,
+      reps: 12,
+      loggedAt: '2026-10-02T18:06:00Z',
+    });
 
     const changed = plan();
     changed.days[0].exercises.pop();
@@ -153,6 +163,7 @@ describe('MCP tools', () => {
     expect(updated.json.warnings).toContain(
       '"plank" non è più nella scheda, ma ha serie registrate: nello storico resterà senza prescrizione.',
     );
+    expect(updated.json.warnings.join(' ')).not.toContain('squat');
     expect(data.plans.get(json.id)!.plan.days[0].exercises).toHaveLength(1);
 
     expect((await tool(s, 'update_plan', { plan_id: 'missing', plan: changed })).isError).toBe(true);

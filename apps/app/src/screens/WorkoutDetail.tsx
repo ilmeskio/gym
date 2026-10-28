@@ -1,6 +1,6 @@
 import type { State, Workout } from '@gymapp/log';
 import { lastTime, setsOf } from '@gymapp/log';
-import { kgFromPlan, prescription, readSets, type Plan } from '@gymapp/plan';
+import { kgFromPlan, partOwner, prescription, readSets, secondPartId, supersetParts, type Exercise as PlanExercise, type Plan } from '@gymapp/plan';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SetForm, SetRow, type Unit } from '../components/SetRow';
@@ -14,28 +14,37 @@ type Props = { plan: Plan; state: State; workout: Workout; onBack: () => void; o
 export function WorkoutDetail({ plan, state, workout: w, onBack, onDelete }: Props) {
   const day = plan.days.find((d) => d.id === w.dayId);
   const sets = setsOf(state, w.id);
-  // Every exercise of the day in plan order, then those with sets that the plan no longer has.
-  const exercises = [...new Set([...(day?.exercises.map((e) => e.id) ?? []), ...sets.map((s) => s.exerciseId)])];
+  // Every exercise of the day in plan order, both of a superset with reps, then those with sets that the plan
+  // no longer has. A hold that follows each set, as in a superset with the side plank, is not logged.
+  const withSecond = (e: PlanExercise) =>
+    !!supersetParts(e.name) && !readSets(prescription(e, w.week).setsReps).then;
+  const planned = day?.exercises.flatMap((e) => (withSecond(e) ? [e.id, secondPartId(e.id)] : [e.id])) ?? [];
+  const exercises = [...new Set([...planned, ...sets.map((s) => s.exerciseId)])];
   const [addingTo, setAddingTo] = useState<string>();
   const data = useData();
-  const exerciseOf = (id: string) => day?.exercises.find((e) => e.id === id);
-  const nameOf = (id: string) => exerciseOf(id)?.name.trim() ?? id;
+  // The second exercise of a superset reads its name and prescription from the plan's exercise.
+  const exerciseOf = (id: string) => day?.exercises.find((e) => e.id === partOwner(id));
+  const isSecond = (id: string) => id !== partOwner(id);
+  function nameOf(id: string) {
+    const exercise = exerciseOf(id);
+    if (!exercise) return id;
+    const parts = supersetParts(exercise.name);
+    return parts ? parts[isSecond(id) ? 1 : 0] : exercise.name.trim();
+  }
   const prescriptionOf = (id: string) => {
     const exercise = exerciseOf(id);
     return exercise && prescription(exercise, w.week);
   };
   const unitOf = (id: string): Unit =>
-    readSets(prescriptionOf(id)?.setsReps).target?.kind === 'seconds' ? 'seconds' : 'reps';
+    !isSecond(id) && readSets(prescriptionOf(id)?.setsReps).target?.kind === 'seconds' ? 'seconds' : 'reps';
 
   // A new set starts from the exercise's last one, here or last time, otherwise from the plan.
   function proposal(id: string) {
     const last = sets.filter((s) => s.exerciseId === id).at(-1) ?? lastTime(state, w.id, id)?.sets.at(-1);
     if (last) return { kg: last.kg, reps: last.reps };
-    const target = readSets(prescriptionOf(id)?.setsReps).target;
-    return {
-      kg: kgFromPlan(prescriptionOf(id)?.load) ?? 0,
-      reps: target && target.kind !== 'max' ? target.max : 10,
-    };
+    const reading = readSets(prescriptionOf(id)?.setsReps);
+    const target = isSecond(id) ? reading.thenReps : reading.target?.kind !== 'max' ? reading.target : undefined;
+    return { kg: kgFromPlan(prescriptionOf(id)?.load) ?? 0, reps: target?.max ?? 10 };
   }
 
   return (

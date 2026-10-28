@@ -2,7 +2,7 @@
 // Stateless: each request builds a server for the signed-in user and answers in JSON.
 
 import type { StoredPlan } from '@gymapp/log';
-import { planProblems, type Plan } from '@gymapp/plan';
+import { partOwner, planProblems, type Plan } from '@gymapp/plan';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { z } from 'zod';
@@ -191,7 +191,7 @@ function buildServer(store: Store, search: MediaSearch) {
       const kept = new Set(content.days.flatMap((d) => d.exercises.map((e) => e.id)));
       const workouts = new Set(data.workouts.filter((w) => w.planId === plan_id).map((w) => w.id));
       const lost = [...new Set(data.sets.filter((s) => workouts.has(s.workoutId)).map((s) => s.exerciseId))].filter(
-        (id) => !kept.has(id),
+        (id) => !kept.has(partOwner(id)),
       );
       await store.updatePlan(plan_id, content);
       return json({
