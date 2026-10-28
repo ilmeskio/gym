@@ -28,6 +28,9 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build:web
+        env:
+          # Shown at the bottom of the home screen.
+          EXPO_PUBLIC_COMMIT: ${{ github.sha }}
       # Expo genera cartelle con il trattino basso (_expo), che Jekyll scarterebbe.
       - run: touch apps/app/dist/.nojekyll
       # Pages serves only files: unknown paths such as /gym/oauth/consent (the OAuth consent

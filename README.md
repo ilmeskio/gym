@@ -164,4 +164,4 @@ il nome del repository GitHub deve essere `gym`. `404.html` è una copia dell'ap
 anche percorsi come `/gym/oauth/consent` la aprono. L'app installata sulla schermata Home non ha un pulsante per
 ricaricare: all'apertura e a ogni ritorno in primo piano confronta il suo bundle (`index-<hash>.js`)
 con quello della pagina pubblicata e, se è cambiato, la schermata iniziale propone "Nuova versione
-disponibile".
+disponibile". In fondo alla schermata iniziale c'è il commit della versione in uso.

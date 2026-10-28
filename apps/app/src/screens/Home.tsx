@@ -30,6 +30,9 @@ type Props = {
   onSignOut: () => void;
 };
 
+// Set by the publishing workflow; missing in a local build.
+const COMMIT = process.env.EXPO_PUBLIC_COMMIT;
+
 const SYNC: Record<SyncStatus, string> = {
   synced: 'Dati salvati sul server',
   pending: 'Salvataggio sul server in corso',
@@ -138,6 +141,8 @@ export function Home(props: Props) {
           <Text style={styles.link}>{props.demo ? 'Esci dalla demo' : 'Esci'}</Text>
         </Pressable>
       </View>
+      {/* The release's commit, to tell whether the app is the latest version. */}
+      <Text style={styles.version}>versione {COMMIT ? COMMIT.slice(0, 7) : 'di sviluppo'}</Text>
     </ScrollView>
   );
 }
@@ -188,5 +193,6 @@ const styles = StyleSheet.create({
   doneOn: { color: colors.accent, fontSize: 14, marginTop: space(1) },
   dayDetail: { color: colors.textMuted, marginTop: space(1) },
   arrow: { color: colors.textMuted, fontSize: 28 },
+  version: { color: colors.textMuted, fontSize: 12, textAlign: 'right', fontVariant: ['tabular-nums'] },
   more: { flexDirection: 'row', gap: space(3), marginTop: space(2) },
 });
