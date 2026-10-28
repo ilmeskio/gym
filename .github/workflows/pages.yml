@@ -1,4 +1,4 @@
-name: Pubblica su GitHub Pages
+name: Pubblica app e API
 
 on:
   push:
@@ -46,3 +46,17 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # The API (with the MCP server) as a Supabase Edge Function, once typecheck and tests pass.
+  # SUPABASE_ACCESS_TOKEN: a personal access token of the Supabase account, as a repository secret.
+  api:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - run: supabase functions deploy api --use-api --project-ref dfrwksgqjykqkkxrjrct
