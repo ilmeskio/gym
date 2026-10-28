@@ -1,6 +1,16 @@
 import type { State, Workout } from '@gymapp/log';
-import { lastTime, setsOf } from '@gymapp/log';
-import { kgFromPlan, partOwner, prescription, readSets, secondPartId, supersetParts, type Exercise as PlanExercise, type Plan } from '@gymapp/plan';
+import { lastTime, repMaxIn, setsOf } from '@gymapp/log';
+import {
+  kgFromPlan,
+  partOwner,
+  prescription,
+  readRepMaxSearch,
+  readSets,
+  secondPartId,
+  supersetParts,
+  type Exercise as PlanExercise,
+  type Plan,
+} from '@gymapp/plan';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SetForm, SetRow, type Unit } from '../components/SetRow';
@@ -14,10 +24,10 @@ type Props = { plan: Plan; state: State; workout: Workout; onBack: () => void; o
 export function WorkoutDetail({ plan, state, workout: w, onBack, onDelete }: Props) {
   const day = plan.days.find((d) => d.id === w.dayId);
   const sets = setsOf(state, w.id);
-  // Every exercise of the day in plan order, both of a superset with reps, then those with sets that the plan
-  // no longer has. A hold that follows each set, as in a superset with the side plank, is not logged.
+  // Every exercise of the day in plan order, both of a superset (also the hold that follows each set, as
+  // with the side plank), then those with sets that the plan no longer has.
   const withSecond = (e: PlanExercise) =>
-    !!supersetParts(e.name) && !readSets(prescription(e, w.week).setsReps).then;
+    !!supersetParts(e.name) || !!readSets(prescription(e, w.week).setsReps).then;
   const planned = day?.exercises.flatMap((e) => (withSecond(e) ? [e.id, secondPartId(e.id)] : [e.id])) ?? [];
   const exercises = [...new Set([...planned, ...sets.map((s) => s.exerciseId)])];
   const [addingTo, setAddingTo] = useState<string>();
@@ -25,24 +35,44 @@ export function WorkoutDetail({ plan, state, workout: w, onBack, onDelete }: Pro
   // The second exercise of a superset reads its name and prescription from the plan's exercise.
   const exerciseOf = (id: string) => day?.exercises.find((e) => e.id === partOwner(id));
   const isSecond = (id: string) => id !== partOwner(id);
-  function nameOf(id: string) {
-    const exercise = exerciseOf(id);
-    if (!exercise) return id;
-    const parts = supersetParts(exercise.name);
-    return parts ? parts[isSecond(id) ? 1 : 0] : exercise.name.trim();
-  }
   const prescriptionOf = (id: string) => {
     const exercise = exerciseOf(id);
     return exercise && prescription(exercise, w.week);
   };
+  /** The hold that follows each set, when the second exercise is one. */
+  const thenOf = (id: string) => (isSecond(id) ? readSets(prescriptionOf(id)?.setsReps).then : undefined);
+  function nameOf(id: string) {
+    const exercise = exerciseOf(id);
+    if (!exercise) return id;
+    const parts = supersetParts(exercise.name);
+    if (!isSecond(id)) return parts?.[0] ?? exercise.name.trim();
+    return parts?.[1] ?? thenOf(id)?.name ?? 'secondo esercizio';
+  }
   const unitOf = (id: string): Unit =>
-    !isSecond(id) && readSets(prescriptionOf(id)?.setsReps).target?.kind === 'seconds' ? 'seconds' : 'reps';
+    thenOf(id) || (!isSecond(id) && readSets(prescriptionOf(id)?.setsReps).target?.kind === 'seconds')
+      ? 'seconds'
+      : 'reps';
+
+  /**
+   * A week that searches the N RM finds it here too: the heaviest set of exactly N reps, once a set is
+   * added or corrected (`list`: the exercise's sets with the change). An RM from a later workout stays.
+   */
+  function saveRepMax(id: string, list: { kg: number; reps: number }[]) {
+    const reps = readRepMaxSearch(prescriptionOf(id)?.load);
+    const kg = reps === undefined ? undefined : repMaxIn(list, reps);
+    if (reps === undefined || kg === undefined) return;
+    const current = state.repMaxes[id];
+    const from = current?.workoutId ? state.workouts[current.workoutId] : undefined;
+    if (from && from.id !== w.id && from.startedAt > w.startedAt) return;
+    data.saveRepMax({ exerciseId: id, reps, kg, workoutId: w.id });
+  }
 
   // A new set starts from the exercise's last one, here or last time, otherwise from the plan.
   function proposal(id: string) {
     const last = sets.filter((s) => s.exerciseId === id).at(-1) ?? lastTime(state, w.id, id)?.sets.at(-1);
     if (last) return { kg: last.kg, reps: last.reps };
     const reading = readSets(prescriptionOf(id)?.setsReps);
+    if (reading.then && isSecond(id)) return { kg: 0, reps: reading.then.seconds };
     const target = isSecond(id) ? reading.thenReps : reading.target?.kind !== 'max' ? reading.target : undefined;
     return { kg: kgFromPlan(prescriptionOf(id)?.load) ?? 0, reps: target?.max ?? 10 };
   }
@@ -79,7 +109,10 @@ export function WorkoutDetail({ plan, state, workout: w, onBack, onDelete }: Pro
                 set={s}
                 number={i + 1}
                 unit={unitOf(id)}
-                onSave={(change) => data.editSet(s.id, change)}
+                onSave={(change) => {
+                  data.editSet(s.id, change);
+                  saveRepMax(id, own.map((o) => (o.id === s.id ? change : o)));
+                }}
                 onDelete={() => data.removeSet(s.id)}
               />
             ))}
@@ -91,6 +124,7 @@ export function WorkoutDetail({ plan, state, workout: w, onBack, onDelete }: Pro
                 onCancel={() => setAddingTo(undefined)}
                 onSave={(set) => {
                   data.logSet({ workoutId: w.id, exerciseId: id, ...set });
+                  saveRepMax(id, [...own, set]);
                   setAddingTo(undefined);
                 }}
               />

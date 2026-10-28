@@ -62,8 +62,18 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const done = setsOf(data.state, workoutId, exercise.id);
   const previous = lastTime(data.state, workoutId, exercise.id);
   const repMax = data.state.repMaxes[exercise.id];
-  // A superset of two exercises with reps: the second has its own load and reps, logged under an id of its own.
-  const second = step.superset && !sets.then ? { id: secondPartId(exercise.id), name: step.superset[1] } : undefined;
+  // The second exercise of a superset, logged under an id of its own: with its own load and reps, or
+  // (`withReps` unset) the seconds of the hold that follows each set, as with the side plank.
+  const second =
+    step.superset || sets.then
+      ? {
+          id: secondPartId(exercise.id),
+          name: step.superset?.[1] ?? sets.then?.name ?? 'secondo esercizio',
+          unit: (sets.then ? 'seconds' : 'reps') as Unit,
+        }
+      : undefined;
+  const withReps = second?.unit === 'reps' ? second : undefined;
+  const firstName = step.superset?.[0] ?? exercise.name.trim();
   const doneSecond = second ? setsOf(data.state, workoutId, second.id) : [];
   const previousSecond = second && lastTime(data.state, workoutId, second.id);
   const repMaxSecond = second && data.state.repMaxes[second.id];
@@ -82,7 +92,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
     return findRepMax !== undefined && found?.workoutId === workoutId && found.reps === findRepMax;
   };
   // In a superset the search goes on until both loads are found.
-  const repMaxFound = foundIn(exercise.id) && (!second || foundIn(second.id));
+  const repMaxFound = foundIn(exercise.id) && (!withReps || foundIn(withReps.id));
   const finished = findRepMax ? repMaxFound : totalSets === undefined || done.length >= totalSets;
   // Without a prescribed number of sets, sets are logged freely and you move on whenever you like.
   const toLog = findRepMax ? !repMaxFound : totalSets === undefined || done.length < totalSets;
@@ -116,7 +126,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   function logSet(reps = currentReps) {
     unlockSignals();
     const parts = [{ exerciseId: exercise.id, kg: currentKg, reps }];
-    if (second) parts.push({ exerciseId: second.id, kg: currentSecondKg, reps: currentSecondReps });
+    if (withReps) parts.push({ exerciseId: withReps.id, kg: currentSecondKg, reps: currentSecondReps });
     let searching = false;
     for (const part of parts) {
       data.logSet({ workoutId, ...part });
@@ -137,10 +147,14 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
     changeTimer({ kind: 'hold', phases: holdPhases(sets, currentReps, currentThen) });
   }
 
-  /** A hold stopped or finished: the seconds done become the set. */
-  function endHold({ worked }: Progress) {
-    if (worked > 0) logSet(worked);
-    else changeTimer();
+  /** A hold stopped or finished: the seconds done become the set, and those of the hold that follows its own. */
+  function endHold({ worked, works }: Progress) {
+    if (worked <= 0) return changeTimer();
+    logSet(worked);
+    // Per side, the seconds that every side reached.
+    const following = works.slice(1).filter((seconds) => seconds > 0);
+    if (second && following.length)
+      data.logSet({ workoutId, exerciseId: second.id, kg: 0, reps: Math.min(...following) });
   }
 
   function startRounds() {
@@ -190,7 +204,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
     ));
 
   let planLoad = p.load;
-  if (useRepMax && second) {
+  if (useRepMax && withReps) {
     planLoad =
       repMax && repMaxSecond
         ? `${formatKg(repMax.kg)} + ${formatKg(repMaxSecond.kg)} (i tuoi ${useRepMax}RM)`
@@ -286,14 +300,14 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
         {exercise.videoToSend ? <Line label="Video al trainer" value={exercise.videoToSend} warning /> : null}
         {previous ? (
           <Line
-            label={`Ultima volta${second ? ` ${step.superset![0]}` : ''}, ${shortDate(previous.workout.startedAt)}`}
+            label={`Ultima volta${second ? ` ${firstName}` : ''}, ${shortDate(previous.workout.startedAt)}`}
             value={previous.sets.map((s) => describeSet(s, unit)).join(' · ')}
           />
         ) : null}
         {second && previousSecond ? (
           <Line
             label={`Ultima volta ${second.name}, ${shortDate(previousSecond.workout.startedAt)}`}
-            value={previousSecond.sets.map((s) => describeSet(s, 'reps')).join(' · ')}
+            value={previousSecond.sets.map((s) => describeSet(s, second.unit)).join(' · ')}
           />
         ) : null}
       </View>
@@ -309,14 +323,14 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
           ) : null}
           {second && done.length ? (
             <>
-              <PartLabel name={step.superset![0]} />
+              <PartLabel name={firstName} />
               <View style={[styles.chips, { gap: z.space(2) }]}>{setChips(done, unit)}</View>
               <PartLabel name={second.name} />
             </>
           ) : null}
           {done.length ? (
             <View style={[styles.chips, { gap: z.space(2) }]}>
-              {second ? setChips(doneSecond, 'reps') : setChips(done, unit)}
+              {second ? setChips(doneSecond, second.unit) : setChips(done, unit)}
               {last ? (
                 <Pressable accessibilityRole="button" onPress={undoLast} hitSlop={8}>
                   <Text style={[styles.link, { fontSize: z.font(14) }]}>Annulla l'ultima</Text>
@@ -325,10 +339,10 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
             </View>
           ) : null}
           {findRepMax && last
-            ? (second
+            ? (withReps
                 ? [
-                    { id: exercise.id, name: step.superset![0], lastSet: last },
-                    { id: second.id, name: second.name, lastSet: lastSecond },
+                    { id: exercise.id, name: firstName, lastSet: last },
+                    { id: withReps.id, name: withReps.name, lastSet: lastSecond },
                   ]
                 : [{ id: exercise.id, name: undefined, lastSet: last }]
               ).map(({ id, name, lastSet }) => (
@@ -371,7 +385,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
           />
         ) : toLog ? (
           <>
-            {second ? <PartLabel name={step.superset![0]} /> : null}
+            {withReps ? <PartLabel name={firstName} /> : null}
             <View style={[styles.fields, { gap: z.space(2) }]}>
               <View style={styles.group}>
                 <Text style={[styles.label, { fontSize: z.font(12) }]}>Carico</Text>
@@ -397,14 +411,14 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
                 </View>
               ) : null}
             </View>
-            {second ? (
+            {withReps ? (
               <>
-                <PartLabel name={second.name} />
+                <PartLabel name={withReps.name} />
                 <View style={[styles.fields, { gap: z.space(2) }]}>
                   <View style={styles.group}>
                     <Text style={[styles.label, { fontSize: z.font(12) }]}>Carico</Text>
                     <Stepper
-                      label={`Carico ${second.name}`}
+                      label={`Carico ${withReps.name}`}
                       unit="kg"
                       zero="corpo libero"
                       value={currentSecondKg}
@@ -414,7 +428,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
                   <View style={styles.group}>
                     <Text style={[styles.label, { fontSize: z.font(12) }]}>Ripetizioni</Text>
                     <Stepper
-                      label={`Ripetizioni ${second.name}`}
+                      label={`Ripetizioni ${withReps.name}`}
                       value={currentSecondReps}
                       onChange={setChosenSecondReps}
                     />
@@ -441,14 +455,14 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
             {findRepMax && last ? (
               <Button
                 title={
-                  second
+                  withReps
                     ? `Va bene così: questi sono i miei ${findRepMax}RM`
                     : `Va bene così: ${formatKg(last.kg)} è il mio ${findRepMax}RM`
                 }
                 variant="outline"
                 onPress={() => {
                   if (!foundIn(exercise.id)) saveRepMax(exercise.id, last.kg);
-                  if (second && lastSecond && !foundIn(second.id)) saveRepMax(second.id, lastSecond.kg);
+                  if (withReps && lastSecond && !foundIn(withReps.id)) saveRepMax(withReps.id, lastSecond.kg);
                 }}
               />
             ) : null}

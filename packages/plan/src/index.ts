@@ -273,7 +273,7 @@ export function todayDate(today = new Date()): string {
 }
 
 export { demos, findAnimations, gifUrl, youtubeId, youtubeSearch } from './media.ts';
-export { cuesBetween, PREPARE_SECONDS, RESUME_MARGIN_SECONDS, timerAt, timerToResume } from './timer.ts';
+export { cuesBetween, PREPARE_SECONDS, RESUME_MARGIN_SECONDS, timerAt, timerToResume, workedSeconds } from './timer.ts';
 export type { Cue, Phase, SavedTimer, TimerState } from './timer.ts';
 export type { Demo, ExerciseMedia, Gif } from './media.ts';
 

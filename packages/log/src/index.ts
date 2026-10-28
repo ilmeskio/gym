@@ -208,6 +208,12 @@ export function saveRepMax(
   };
 }
 
+/** The N RM a workout's sets show: the heaviest load among the sets of exactly N reps. */
+export function repMaxIn(sets: Pick<LoggedSet, 'kg' | 'reps'>[], reps: number): number | undefined {
+  const loads = sets.filter((s) => s.reps === reps).map((s) => s.kg);
+  return loads.length ? Math.max(...loads) : undefined;
+}
+
 function updatePreferences(state: State, preferences: Preferences): State {
   return { ...state, preferences, outbox: enqueue(state, 'preferences', PREFERENCES_KEY) };
 }
@@ -267,6 +273,12 @@ export function nextDay(state: State, planId: string, days: string[]): string {
   const last = history(state).find((w) => w.planId === planId);
   const index = last ? days.indexOf(last.dayId) : -1;
   return days[(index + 1) % days.length];
+}
+
+/** From `next` on, in the plan's order, the first day not yet done in the week. */
+export function nextOpenDay(next: string, days: string[], done: string[]): string | undefined {
+  const from = Math.max(days.indexOf(next), 0);
+  return [...days.slice(from), ...days.slice(0, from)].find((d) => !done.includes(d));
 }
 
 /** The plan's days done in a week, with the workout that did each: the latest, if done twice. */

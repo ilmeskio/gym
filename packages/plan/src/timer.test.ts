@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cuesBetween, RESUME_MARGIN_SECONDS, timerAt, timerToResume, type Phase } from './timer.ts';
+import { cuesBetween, RESUME_MARGIN_SECONDS, timerAt, timerToResume, workedSeconds, type Phase } from './timer.ts';
 
 const hold: Phase[] = [
   { kind: 'prepare', seconds: 5 },
@@ -75,5 +75,24 @@ describe('timerToResume', () => {
     expect(timerToResume(null, 'w1', 'plank', at(1))).toBeUndefined();
     expect(timerToResume('{', 'w1', 'plank', at(1))).toBeUndefined();
     expect(timerToResume('{"workoutId":"w1","exerciseId":"plank"}', 'w1', 'plank', at(1))).toBeUndefined();
+  });
+});
+
+describe('workedSeconds', () => {
+  // A hold followed by a hold per side, as in a superset with the side plank.
+  const superset: Phase[] = [
+    { kind: 'prepare', seconds: 5 },
+    { kind: 'work', seconds: 30 },
+    { kind: 'prepare', seconds: 5, label: 'sinistro' },
+    { kind: 'work', seconds: 20, label: 'sinistro' },
+    { kind: 'prepare', seconds: 5, label: 'destro' },
+    { kind: 'work', seconds: 20, label: 'destro' },
+  ];
+
+  it('gives the seconds done in each work phase', () => {
+    expect(workedSeconds(superset, 0)).toEqual([0, 0, 0]);
+    expect(workedSeconds(superset, 20.6)).toEqual([15, 0, 0]);
+    expect(workedSeconds(superset, 52)).toEqual([30, 12, 0]);
+    expect(workedSeconds(superset, 1000)).toEqual([30, 20, 20]);
   });
 });

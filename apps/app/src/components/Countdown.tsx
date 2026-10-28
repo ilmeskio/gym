@@ -2,7 +2,7 @@
 // the end of the round. Time comes from the clock, so it stays right if the page slows down
 // or is reloaded.
 
-import { cuesBetween, timerAt, type Phase } from '@gymapp/plan';
+import { cuesBetween, timerAt, workedSeconds, type Phase } from '@gymapp/plan';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { keepAwake, signal } from '../signal';
@@ -14,8 +14,11 @@ const LABELS: Record<Phase['kind'], string> = { prepare: 'Preparati', work: 'Vai
 
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 
-/** How far the timer got: seconds of the first work phase, and work phases completed. */
-export type Progress = { worked: number; rounds: number };
+/**
+ * How far the timer got: seconds of the first work phase, work phases completed, and the seconds
+ * of every work phase (a hold, then the hold that follows it in a superset).
+ */
+export type Progress = { worked: number; rounds: number; works: number[] };
 
 type Props = {
   phases: Phase[];
@@ -33,11 +36,12 @@ export function Countdown({ phases, startedAt, onDone, stop }: Props) {
   const lastCheck = useRef(elapsedNow());
   const [elapsed, setElapsed] = useState(elapsedNow);
   const state = timerAt(phases, elapsed);
-  const workIndex = phases.findIndex((p) => p.kind === 'work');
-  const workStart = phases.slice(0, Math.max(workIndex, 0)).reduce((s, p) => s + p.seconds, 0);
-  const worked = workIndex < 0 ? 0 : Math.min(Math.max(Math.floor(elapsed - workStart), 0), phases[workIndex].seconds);
   const workDone = (upTo: number) => phases.slice(0, upTo).filter((p) => p.kind === 'work').length;
-  const progress = { worked, rounds: workDone(state.index) };
+  const progressAt = (seconds: number, rounds: number): Progress => {
+    const works = workedSeconds(phases, seconds);
+    return { worked: works[0] ?? 0, rounds, works };
+  };
+  const progress = progressAt(elapsed, workDone(state.index));
 
   useEffect(() => {
     keepAwake(true);
@@ -55,7 +59,7 @@ export function Countdown({ phases, startedAt, onDone, stop }: Props) {
 
   const done = state.done;
   useEffect(() => {
-    if (done) onDone({ worked: workIndex < 0 ? 0 : phases[workIndex].seconds, rounds: workDone(phases.length) });
+    if (done) onDone(progressAt(Infinity, workDone(phases.length)));
   }, [done]);
 
   return (
