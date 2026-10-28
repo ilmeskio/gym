@@ -1,4 +1,14 @@
-import { activePlan, lastTime, nextDay, setsOf, workoutInProgress, type StoredPlan, type Workout } from '@gymapp/log';
+import {
+  activePlan,
+  doneInWeek,
+  firstOpenWeek,
+  lastTime,
+  nextDay,
+  setsOf,
+  workoutInProgress,
+  type StoredPlan,
+  type Workout,
+} from '@gymapp/log';
 import { currentWeek, session, todayDate, type Plan } from '@gymapp/plan';
 import exampleData from '@gymapp/plan/data/example.json';
 import { StatusBar } from 'expo-status-bar';
@@ -68,8 +78,17 @@ function Content() {
   const planOf = (w: Workout): Plan | undefined =>
     (w.planId && (w.planId === EXAMPLE.id ? EXAMPLE : state.plans[w.planId])?.plan) || plan;
   const startDate = current && state.preferences.planStarts[current.id];
-  const week = chosenWeek ?? (plan ? currentWeek(startDate, new Date(), plan.weekCount) : 1);
   const inProgress = workoutInProgress(state);
+  // The week of the workout in progress; otherwise the calendar's, or the next one once every day of a week is done.
+  const week =
+    chosenWeek ??
+    inProgress?.week ??
+    (plan && current
+      ? Math.max(
+          currentWeek(startDate, new Date(), plan.weekCount),
+          firstOpenWeek(state, current.id, plan.days.map((d) => d.id), plan.weekCount),
+        )
+      : 1);
   const goHome = () => setScreen({ name: 'home' });
 
   const workout = screen.name === 'workout' ? state.workouts[screen.id] : undefined;
@@ -222,6 +241,7 @@ function Content() {
         <Home
           plan={plan}
           week={week}
+          done={doneInWeek(state, current.id, week)}
           startDate={startDate}
           next={nextDay(state, current.id, days)}
           inProgress={inProgress}

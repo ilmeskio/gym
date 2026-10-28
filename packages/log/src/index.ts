@@ -269,6 +269,22 @@ export function nextDay(state: State, planId: string, days: string[]): string {
   return days[(index + 1) % days.length];
 }
 
+/** The plan's days done in a week, with the workout that did each: the latest, if done twice. */
+export function doneInWeek(state: State, planId: string, week: number): Record<string, Workout> {
+  const done: Record<string, Workout> = {};
+  for (const w of [...history(state)].reverse()) {
+    if (w.planId === planId && w.week === week) done[w.dayId] = w;
+  }
+  return done;
+}
+
+/** The first week whose days are not all done: after a complete week, the next one starts. */
+export function firstOpenWeek(state: State, planId: string, days: string[], weekCount: number): number {
+  let week = 1;
+  while (week < weekCount && days.every((d) => doneInWeek(state, planId, week)[d])) week++;
+  return week;
+}
+
 // Sync
 
 const pending = (state: State, table: Table) =>

@@ -132,8 +132,10 @@ restano gli stessi. Il login resta su Supabase Auth.
 ## Settimane
 
 La settimana 1 di una scheda parte dal primo allenamento fatto con quella scheda, non dalla data
-in cui il trainer l'ha scritta; dalla schermata iniziale si può ricominciare da oggi o scegliere
-un'altra settimana.
+in cui il trainer l'ha scritta. Quando tutti i giorni di una settimana sono fatti, l'app passa alla
+settimana dopo anche se il calendario non ci è ancora arrivato; con un allenamento in corso mostra
+la sua settimana. Nella schermata iniziale i giorni già fatti nella settimana scelta hanno la
+spunta con la data. Da lì si può anche ricominciare da oggi o scegliere un'altra settimana.
 
 ## Lettura della scheda
 
