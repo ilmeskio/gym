@@ -125,7 +125,8 @@ restano gli stessi. Il login resta su Supabase Auth.
   array). Le uniche parti legate a Supabase sono le policy RLS, l'autenticazione e lo storage;
   l'accesso ai dati sta tutto nell'adattatore `packages/api/src/supabase.ts`.
 - Schema: `supabase migration new <nome>`, poi `supabase db push`; configurazione:
-  `supabase config push`; API: `supabase functions deploy api --use-api`. La password del
+  `supabase config push`; l'API si pubblica da sola a ogni push su `main`, oppure a mano con
+  `supabase functions deploy api --use-api`. La password del
   database è in 1Password (`op://Private/Supabase - gymapp/password`), da passare con
   `ai-secrets` come `SUPABASE_DB_PASSWORD`.
 
@@ -154,7 +155,8 @@ spunta con la data. Da lì si può anche ricominciare da oggi o scegliere un'alt
 
 ## Pubblicazione
 
-Ogni push su `main` esegue typecheck, test ed export web, e pubblica `apps/app/dist`
-con GitHub Actions. Il sito vive sotto `/gym` (`experiments.baseUrl` in `apps/app/app.json`):
+Ogni push su `main` esegue typecheck, test ed export web, e pubblica con GitHub Actions
+`apps/app/dist` su GitHub Pages e l'API come Edge Function su Supabase (segreto del repository
+`SUPABASE_ACCESS_TOKEN`, un access token personale di Supabase). Il sito vive sotto `/gym` (`experiments.baseUrl` in `apps/app/app.json`):
 il nome del repository GitHub deve essere `gym`. `404.html` è una copia dell'app, così
 anche percorsi come `/gym/oauth/consent` la aprono.
