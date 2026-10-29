@@ -1,5 +1,6 @@
 import { lastTime, setsOf, type LoggedSet } from '@gymapp/log';
 import {
+  DEFAULT_REST_TEXT,
   demos,
   holdPhases,
   intervalPhases,
@@ -291,7 +292,11 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
         <View style={[styles.chips, { gap: z.space(2) }]}>
           {setsText ? <Chip value={thenText ? `${setsText} + ${thenText}` : setsText} highlight /> : null}
           {planLoad && !findRepMax ? <Chip label="Carico" value={planLoad} /> : null}
-          {p.rest ? <Chip label="Recupero" value={p.rest} /> : null}
+          {step.restMissing ? (
+            <Chip label="Recupero" value={`${DEFAULT_REST_TEXT} (non indicato)`} />
+          ) : p.rest ? (
+            <Chip label="Recupero" value={p.rest} />
+          ) : null}
           {p.tut ? <Chip label="Esecuzione" value={p.tut} /> : null}
           {p.rir ? <Chip label="RIR" value={p.rir} /> : null}
         </View>

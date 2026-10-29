@@ -191,6 +191,13 @@ describe('session', () => {
     ]);
     expect(steps[0].sets.sets).toEqual({ min: 4, max: 4 });
     expect(steps[0].restSeconds).toBe(90);
+    expect(steps[0].restMissing).toBeUndefined();
+  });
+
+  it('gives a minute of rest to an exercise whose plan has none', () => {
+    const raises = session(plan, 'A', 2)[1];
+    expect(raises.restSeconds).toBe(60);
+    expect(raises.restMissing).toBe(true);
   });
 
   it('rejects a missing day or week', () => {
@@ -472,7 +479,7 @@ describe('stepDetails', () => {
     expect(stepDetails(step)).toEqual(["recupero 1'30", 'TUT 2" fase eccentrica', 'RIR 2', 'gomiti morbidi']);
   });
 
-  it('is empty when the week says only sets and reps', () => {
-    expect(stepDetails(session(plan, 'A', 2)[1])).toEqual([]);
+  it('says when the rest is the default one, missing in the plan', () => {
+    expect(stepDetails(session(plan, 'A', 2)[1])).toEqual(["recupero 1' (non indicato)"]);
   });
 });
