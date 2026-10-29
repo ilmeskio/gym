@@ -47,12 +47,14 @@ L'app mostra queste istruzioni a chi non ha ancora una scheda.
   L'MCP risponde 401 con l'indirizzo dei suoi metadati (`/.well-known/oauth-protected-resource`);
   il consenso è una schermata dell'app, su `/gym/oauth/consent`. Supabase accetta il consenso
   solo dall'origine del sito, quindi si prova solo sull'app pubblicata.
-- Strumenti: `list_plans`, `get_plan`, `create_plan`, `update_plan`, `activate_plan`,
+- Strumenti: `list_plans`, `get_plan`, `check_plan`, `create_plan`, `update_plan`, `activate_plan`,
   `find_exercise_media` (GIF di ExerciseDB e foto di free-exercise-db per nome inglese),
   `excel_upload_link` (link firmato per caricare il file Excel originale, per esempio con curl).
 - Una scheda nuova diventa quella attiva; le vecchie restano, e ogni allenamento ricorda la sua.
   `create_plan` e `update_plan` rifiutano le schede che l'app non può seguire (id ripetuti,
-  più settimane del dovuto) e avvisano delle prescrizioni che l'app legge solo come note.
+  più settimane del dovuto) e avvisano delle prescrizioni che l'app legge solo come note e degli
+  esercizi a più serie senza recupero. `check_plan` dà gli stessi errori e avvisi senza salvare,
+  per una scheda salvata, quella attiva o una bozza; `get_plan` riporta gli avvisi della scheda.
 - La demo usa la scheda d'esempio dentro l'app, con un id fisso; il server MCP e i file Excel
   non sono per la demo.
 
