@@ -189,6 +189,8 @@ export type Step = {
   prescription: Prescription;
   sets: SetsReading;
   restSeconds?: number;
+  /** The plan gives no rest: `restSeconds` is the default minute. */
+  restMissing?: boolean;
   /** This week the maximum load for N reps (N RM) has to be found. */
   findRepMax?: number;
   /** The load to use is the N RM found in an earlier week. */
@@ -196,6 +198,10 @@ export type Step = {
   /** A superset: the names of its two exercises, each with its own load and reps. */
   superset?: [string, string];
 };
+
+/** The rest between sets when the plan gives none. */
+export const DEFAULT_REST_SECONDS = 60;
+export const DEFAULT_REST_TEXT = "1'";
 
 const REP_MAX_SEARCH = /^trova\s*(\d+)\s*rm/i;
 
@@ -237,13 +243,15 @@ export function session(plan: Plan, dayId: string, week: number): Step[] {
   }
   return day.exercises.map((exercise, index) => {
     const p = prescription(exercise, week);
+    const restMissing = !p.rest?.trim();
     return {
       exercise,
       position: index + 1,
       total: day.exercises.length,
       prescription: p,
       sets: readSets(p.setsReps),
-      restSeconds: readRest(p.rest),
+      restSeconds: restMissing ? DEFAULT_REST_SECONDS : readRest(p.rest),
+      ...(restMissing && { restMissing }),
       findRepMax: readRepMaxSearch(p.load),
       useRepMax: p.load ? undefined : lastRepMaxSearch(exercise, week),
       superset: supersetParts(exercise.name),
@@ -252,9 +260,9 @@ export function session(plan: Plan, dayId: string, week: number): Step[] {
 }
 
 /** What else a step asks besides sets and load, in words to show before starting. */
-export function stepDetails({ prescription: p, exercise }: Step): string[] {
+export function stepDetails({ prescription: p, exercise, restMissing }: Step): string[] {
   return [
-    p.rest && `recupero ${p.rest.trim()}`,
+    restMissing ? `recupero ${DEFAULT_REST_TEXT} (non indicato)` : p.rest && `recupero ${p.rest.trim()}`,
     p.tut && `TUT ${p.tut.trim()}`,
     p.rir && `RIR ${p.rir.trim()}`,
     exercise.notes?.trim(),
