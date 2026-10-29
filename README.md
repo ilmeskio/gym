@@ -152,6 +152,9 @@ spunta con la data. Da lì si può anche ricominciare da oggi o scegliere un'alt
   ha carico e ripetizioni per ciascun esercizio, e un "trova N rm" cerca l'RM di entrambi. Le serie
   del secondo esercizio di un superset, anche della tenuta che segue ogni serie (il side plank), si
   registrano con l'id dell'esercizio seguito da `~2`.
+- Una serie al massimo seguita da serie a metà ripetizioni (`1xmax + 3 x metà rep prima serie`) conta
+  tutte le serie, con il recupero dopo ognuna; le serie a metà partono dalla metà delle ripetizioni
+  della prima.
 - I giri contro il tempo (`5 rep ogni 30" x 4 min`) hanno un timer che segnala l'inizio di ogni
   giro; le ripetizioni dei giri fatti diventano una serie.
 

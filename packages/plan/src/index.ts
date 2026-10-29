@@ -53,6 +53,8 @@ export type SetsReading = {
   /** The reps of the exercise done straight after each set, in a superset: `3x8/12+8/12`. */
   thenReps?: Range;
   intervals?: Intervals;
+  /** Sets after the first, each with half its reps: `1xmax + 3 x metà rep prima serie`. */
+  halfRepSets?: number;
 };
 
 const range = (min: string, max?: string): Range => ({
@@ -63,6 +65,7 @@ const range = (min: string, max?: string): Range => ({
 const SETS = /^(\d+)(?:\/(\d+))?\s*x\s*(?:(max)|(\d+)(?:\/(\d+))?\s*(")?)/i;
 const THEN_HOLD = /^\+\s*(\d+)\s*"\s*(a lato|per lato)?\s*(.*)$/i;
 const THEN_REPS = /^\+\s*(\d+)(?:\/(\d+))?(?![\d/]|\s*")/;
+const HALF_REP_SETS = /^\+?\s*(\d+)\s*x\s*metà\s*rep/i;
 const INTERVALS = /^(\d+)\s*rep\w*\s+ogni\s+(\d+)\s*"\s*x\s*(\d+)\s*min/i;
 
 export function readSets(text: string | undefined): SetsReading {
@@ -80,9 +83,11 @@ export function readSets(text: string | undefined): SetsReading {
   const reading: SetsReading = { sets: range(setsMin, setsMax), target };
   const note = clean.slice(whole.length).trim();
   if (note) reading.note = note;
-  const then = THEN_HOLD.exec(note);
+  const half = HALF_REP_SETS.exec(note);
+  if (half) reading.halfRepSets = Number(half[1]);
+  const then = !half && THEN_HOLD.exec(note);
   if (then) reading.then = { seconds: Number(then[1]), perSide: !!then[2], ...(then[3] && { name: then[3] }) };
-  const thenReps = !then && THEN_REPS.exec(note);
+  const thenReps = !half && !then && THEN_REPS.exec(note);
   if (thenReps) reading.thenReps = range(thenReps[1], thenReps[2]);
   return reading;
 }

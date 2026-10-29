@@ -48,7 +48,16 @@ describe('readSets', () => {
       sets: { min: 1, max: 1 },
       target: { kind: 'max' },
       note: '2 x metà rep prima serie',
+      halfRepSets: 2,
     });
+  });
+
+  it('reads the sets at half the reps of the first, not as the reps of a superset', () => {
+    const reading = readSets('1xmax + 3 x metà rep prima serie');
+    expect(reading.halfRepSets).toBe(3);
+    expect(reading.thenReps).toBeUndefined();
+    expect(reading.sets).toEqual({ min: 1, max: 1 });
+    expect(readSets('3x10').halfRepSets).toBeUndefined();
   });
 
   it('reads the reps of the exercise that follows in a superset', () => {

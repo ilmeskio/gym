@@ -85,7 +85,8 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
     setTimer(started);
   }
 
-  const totalSets = findRepMax ? undefined : sets.sets?.max;
+  const halfRepSets = sets.halfRepSets ?? 0;
+  const totalSets = findRepMax || !sets.sets ? undefined : sets.sets.max + halfRepSets;
   const unit: Unit = sets.target?.kind === 'seconds' ? 'seconds' : 'reps';
   const foundIn = (id: string) => {
     const found = data.state.repMaxes[id];
@@ -101,7 +102,15 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   // Values proposed for the next set: what was done so far, then last time, then the plan.
   const proposedKg =
     last?.kg ?? previous?.sets.at(-1)?.kg ?? (useRepMax && repMax ? repMax.kg : (kgFromPlan(p.load) ?? 0));
-  const proposedReps = findRepMax ?? (sets.target && sets.target.kind !== 'max' ? sets.target.max : (last?.reps ?? 10));
+  // The sets after the first one at half its reps start from half of what the first set reached.
+  const firstReps = done[0]?.reps;
+  const proposedReps =
+    findRepMax ??
+    (halfRepSets && firstReps !== undefined && sets.sets && done.length >= sets.sets.max
+      ? Math.max(Math.round(firstReps / 2), 1)
+      : sets.target && sets.target.kind !== 'max'
+        ? sets.target.max
+        : (last?.reps ?? 10));
   const [chosenKg, setChosenKg] = useState<number>();
   const [chosenReps, setChosenReps] = useState<number>();
   const currentKg = chosenKg ?? proposedKg;
@@ -216,9 +225,10 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   }
 
   const z = useSizes();
+  const halfText = halfRepSets ? ` + ${halfRepSets} × metà ripetizioni` : '';
   const setsText =
     sets.sets && sets.target && !findRepMax
-      ? `${sets.sets.min === sets.sets.max ? sets.sets.max : `${sets.sets.min}-${sets.sets.max}`} × ${describeTarget(sets.target)}`
+      ? `${sets.sets.min === sets.sets.max ? sets.sets.max : `${sets.sets.min}-${sets.sets.max}`} × ${describeTarget(sets.target)}${halfText}`
       : undefined;
   const thenText = sets.thenReps && describeTarget({ kind: 'reps', ...sets.thenReps });
   // A note with only the reps of the second exercise of a superset would repeat the sets chip.
