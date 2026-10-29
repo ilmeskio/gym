@@ -139,14 +139,40 @@ function buildServer(store: Store, search: MediaSearch) {
   server.registerTool(
     'get_plan',
     {
-      description: 'A whole plan: the active one, or the one with the given id.',
+      description:
+        'A whole plan: the active one, or the one with the given id, with the warnings check_plan would give.',
       inputSchema: { plan_id: z.string().optional() },
     },
     async ({ plan_id }: { plan_id?: string }) => {
       const { plans } = await store.download();
       const found = plan_id ? plans.find((p) => p.id === plan_id) : plans.find(isActive(plans));
       if (!found) return json({ error: plan_id ? 'No plan with this id.' : 'There is no active plan.' }, true);
-      return json({ id: found.id, active: isActive(plans)(found), excel: found.excel, plan: found.plan });
+      return json({
+        id: found.id,
+        active: isActive(plans)(found),
+        excel: found.excel,
+        plan: found.plan,
+        warnings: planProblems(found.plan).warnings,
+      });
+    },
+  );
+
+  server.registerTool(
+    'check_plan',
+    {
+      description:
+        'Checks a plan without saving anything: a saved one by id, the active one, or a draft passed as `plan` ' +
+        '(e.g. before create_plan). Errors would keep it from being saved; warnings say what the app shows ' +
+        'only as notes or fills in by itself.',
+      inputSchema: { plan_id: z.string().optional(), plan: plan.optional() },
+    },
+    async ({ plan_id, plan: draft }: { plan_id?: string; plan?: PlanInput }) => {
+      if (plan_id && draft) return json({ error: 'Pass either plan_id or plan, not both.' }, true);
+      if (draft) return json(planProblems(draft as Plan));
+      const { plans } = await store.download();
+      const found = plan_id ? plans.find((p) => p.id === plan_id) : plans.find(isActive(plans));
+      if (!found) return json({ error: plan_id ? 'No plan with this id.' : 'There is no active plan.' }, true);
+      return json(planProblems(found.plan));
     },
   );
 

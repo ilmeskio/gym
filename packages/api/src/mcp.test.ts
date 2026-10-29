@@ -84,6 +84,7 @@ describe('MCP tools', () => {
     const { result } = await (await rpc(s, 'tools/list')).json();
     expect(result.tools.map((t: { name: string }) => t.name).sort()).toEqual([
       'activate_plan',
+      'check_plan',
       'create_plan',
       'excel_upload_link',
       'find_exercise_media',
@@ -97,7 +98,10 @@ describe('MCP tools', () => {
     const s = setup();
     const created = await tool(s, 'create_plan', { plan: plan() });
     expect(created.isError).toBe(false);
-    expect(created.json.warnings).toEqual(['"plank" non ha GIF né foto: l\'app mostrerà solo la ricerca su YouTube.']);
+    expect(created.json.warnings).toEqual([
+      '"plank", settimana 1: nessun recupero tra le serie, nemmeno nelle settimane prima: l\'app usa 1\'.',
+      '"plank" non ha GIF né foto: l\'app mostrerà solo la ricerca su YouTube.',
+    ]);
 
     const stored = s.storeOf('anna').data.plans.get(created.json.id)!;
     expect(stored.plan).toEqual(plan());
@@ -106,7 +110,33 @@ describe('MCP tools', () => {
     const active = await tool(s, 'get_plan');
     expect(active.json.id).toBe(created.json.id);
     expect(active.json.plan.title).toBe('Scheda di prova');
+    expect(active.json.warnings).toEqual(created.json.warnings);
     expect(s.storeOf('demo').data.plans.size).toBe(0);
+  });
+
+  it('checks a saved plan, the active one or a draft, without saving anything', async () => {
+    const s = setup();
+    const id = (await tool(s, 'create_plan', { plan: plan() })).json.id;
+    const saved = await tool(s, 'check_plan', { plan_id: id });
+    expect(saved.isError).toBe(false);
+    expect(saved.json).toEqual({
+      errors: [],
+      warnings: [
+        '"plank", settimana 1: nessun recupero tra le serie, nemmeno nelle settimane prima: l\'app usa 1\'.',
+        '"plank" non ha GIF né foto: l\'app mostrerà solo la ricerca su YouTube.',
+      ],
+    });
+    expect((await tool(s, 'check_plan')).json).toEqual(saved.json);
+
+    const twice = plan();
+    twice.days[0].exercises.push(twice.days[0].exercises[0]);
+    const draft = await tool(s, 'check_plan', { plan: twice });
+    expect(draft.isError).toBe(false);
+    expect(draft.json.errors).toContain('L\'esercizio "squat" compare più volte: gli id degli esercizi devono essere unici.');
+    expect(s.storeOf('anna').data.plans.size).toBe(1);
+
+    expect((await tool(s, 'check_plan', { plan_id: 'nessuna' })).isError).toBe(true);
+    expect((await tool(s, 'check_plan', { plan_id: id, plan: plan() })).isError).toBe(true);
   });
 
   it('refuses a plan the app cannot follow, and a malformed one', async () => {
