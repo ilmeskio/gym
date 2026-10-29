@@ -329,6 +329,16 @@ export function planProblems(plan: Plan): PlanProblems {
           warnings.push(`${where}: il recupero "${week.rest}" non si legge (es. 1'30, 2', 40"): niente timer.`);
         }
       });
+      const noRest = exercise.weeks.findIndex((_, i) => {
+        const p = prescription(exercise, i + 1);
+        const { sets, halfRepSets = 0 } = readSets(p.setsReps);
+        return !!sets && sets.max + halfRepSets > 1 && !p.rest?.trim();
+      });
+      if (noRest >= 0) {
+        warnings.push(
+          `"${name}", settimana ${noRest + 1}: nessun recupero tra le serie, nemmeno nelle settimane prima: l'app usa ${DEFAULT_REST_TEXT}.`,
+        );
+      }
       if (!exercise.media?.gif?.length && !exercise.media?.photos?.length) {
         warnings.push(`"${name}" non ha GIF né foto: l'app mostrerà solo la ricerca su YouTube.`);
       }

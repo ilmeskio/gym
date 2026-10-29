@@ -97,7 +97,10 @@ describe('MCP tools', () => {
     const s = setup();
     const created = await tool(s, 'create_plan', { plan: plan() });
     expect(created.isError).toBe(false);
-    expect(created.json.warnings).toEqual(['"plank" non ha GIF né foto: l\'app mostrerà solo la ricerca su YouTube.']);
+    expect(created.json.warnings).toEqual([
+      '"plank", settimana 1: nessun recupero tra le serie, nemmeno nelle settimane prima: l\'app usa 1\'.',
+      '"plank" non ha GIF né foto: l\'app mostrerà solo la ricerca su YouTube.',
+    ]);
 
     const stored = s.storeOf('anna').data.plans.get(created.json.id)!;
     expect(stored.plan).toEqual(plan());

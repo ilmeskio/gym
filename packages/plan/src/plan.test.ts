@@ -460,6 +460,20 @@ describe('planProblems', () => {
       '"squat" non ha GIF né foto: l\'app mostrerà solo la ricerca su YouTube.',
     ]);
   });
+
+  it('warns once about an exercise with more sets and no rest, from the first week without one', () => {
+    const plan = valid();
+    plan.days[0].exercises[0].weeks = [{ setsReps: '1x10' }, { setsReps: '1xmax + 3 x metà rep prima serie' }];
+    expect(planProblems(plan).warnings).toEqual([
+      '"squat", settimana 2: nessun recupero tra le serie, nemmeno nelle settimane prima: l\'app usa 1\'.',
+    ]);
+  });
+
+  it('does not ask for a rest when the sets are not counted', () => {
+    const plan = valid();
+    plan.days[0].exercises[0].weeks = [{ setsReps: '5 rep ogni 30" x 4 min' }, { load: 'trova 12 rm', setsReps: 'limitati a questo' }];
+    expect(planProblems(plan).warnings).toEqual([]);
+  });
 });
 
 describe('stepDetails', () => {
