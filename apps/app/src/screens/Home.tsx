@@ -1,4 +1,4 @@
-import { nextOpenDay, type Workout } from '@gymapp/log';
+import type { Workout } from '@gymapp/log';
 import type { Plan } from '@gymapp/plan';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
@@ -14,7 +14,8 @@ type Props = {
   done: Record<string, Workout>;
   /** The plan's start date, `YYYY-MM-DD`. */
   startDate?: string;
-  next: string;
+  /** The day to do next, shown only in the current week. */
+  suggested?: string;
   inProgress?: Workout;
   sync: SyncStatus;
   demo: boolean;
@@ -40,14 +41,8 @@ const SYNC: Record<SyncStatus, string> = {
 };
 
 export function Home(props: Props) {
-  const { plan, week, startDate, next, inProgress } = props;
+  const { plan, week, startDate, inProgress } = props;
   const titleOf = (id: string) => plan.days.find((d) => d.id === id)?.title ?? id;
-  // The day after the last one done, unless the chosen week already has it: then the next one it lacks.
-  const suggestedDay = nextOpenDay(
-    next,
-    plan.days.map((d) => d.id),
-    Object.keys(props.done),
-  );
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -106,7 +101,7 @@ export function Home(props: Props) {
 
       <Text style={styles.label}>Allenamento</Text>
       {plan.days.map((day) => {
-        const suggested = !inProgress && day.id === suggestedDay;
+        const suggested = !inProgress && day.id === props.suggested;
         const doneOn = props.done[day.id];
         return (
           <Pressable

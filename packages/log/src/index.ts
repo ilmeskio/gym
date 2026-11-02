@@ -268,19 +268,6 @@ export function lastTime(state: State, workoutId: string, exerciseId: string) {
   return undefined;
 }
 
-/** The day after the one of the plan's latest finished workout, wrapping around to the first. */
-export function nextDay(state: State, planId: string, days: string[]): string {
-  const last = history(state).find((w) => w.planId === planId);
-  const index = last ? days.indexOf(last.dayId) : -1;
-  return days[(index + 1) % days.length];
-}
-
-/** From `next` on, in the plan's order, the first day not yet done in the week. */
-export function nextOpenDay(next: string, days: string[], done: string[]): string | undefined {
-  const from = Math.max(days.indexOf(next), 0);
-  return [...days.slice(from), ...days.slice(0, from)].find((d) => !done.includes(d));
-}
-
 /** The plan's days done in a week, with the workout that did each: the latest, if done twice. */
 export function doneInWeek(state: State, planId: string, week: number): Record<string, Workout> {
   const done: Record<string, Workout> = {};
@@ -290,11 +277,16 @@ export function doneInWeek(state: State, planId: string, week: number): Record<s
   return done;
 }
 
-/** The first week whose days are not all done: after a complete week, the next one starts. */
-export function firstOpenWeek(state: State, planId: string, days: string[], weekCount: number): number {
-  let week = 1;
-  while (week < weekCount && days.every((d) => doneInWeek(state, planId, week)[d])) week++;
-  return week;
+/**
+ * The day to do next in a week: in the plan's order, the first one not yet done there, starting
+ * after the week's latest workout, or from the first day if the week has none. None once the
+ * week is complete.
+ */
+export function suggestedDay(state: State, planId: string, days: string[], week: number): string | undefined {
+  const done = doneInWeek(state, planId, week);
+  const latest = history(state).find((w) => w.planId === planId && w.week === week);
+  const from = latest ? days.indexOf(latest.dayId) + 1 : 0;
+  return [...days.slice(from), ...days.slice(0, from)].find((d) => !done[d]);
 }
 
 // Sync
