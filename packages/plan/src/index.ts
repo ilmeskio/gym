@@ -269,13 +269,18 @@ export function stepDetails({ prescription: p, exercise, restMissing }: Step): s
   ].filter((d): d is string => !!d);
 }
 
-/** The current week (1-based), counting from the start date (`YYYY-MM-DD`). */
+/**
+ * The current week (1-based): calendar weeks, Monday to Sunday, counting the one that holds
+ * the start date (`YYYY-MM-DD`) as week 1.
+ */
 export function currentWeek(startDate: string | undefined, today: Date, weekCount: number): number {
   if (!startDate) return 1;
   const [y, m, d] = startDate.split('-').map(Number);
+  const start = new Date(y, m - 1, d);
+  const startMonday = new Date(y, m - 1, d - ((start.getDay() + 6) % 7));
   const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   // Rounding absorbs the hour gained or lost at daylight saving changes.
-  const days = Math.round((midnight.getTime() - new Date(y, m - 1, d).getTime()) / 86_400_000);
+  const days = Math.round((midnight.getTime() - startMonday.getTime()) / 86_400_000);
   return Math.min(Math.max(Math.floor(days / 7) + 1, 1), weekCount);
 }
 
