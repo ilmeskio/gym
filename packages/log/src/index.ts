@@ -3,7 +3,7 @@
 // the row it touched; sync reads the outbox, sends the row's current version
 // (or its deletion, if it is gone) and confirms.
 
-import type { Plan } from '@gymapp/plan';
+import { currentWeek, type Plan } from '@gymapp/plan';
 
 export type Feedback = { effort: number; note?: string };
 
@@ -268,33 +268,34 @@ export function lastTime(state: State, workoutId: string, exerciseId: string) {
   return undefined;
 }
 
-/** The day after the one of the plan's latest finished workout, wrapping around to the first. */
-export function nextDay(state: State, planId: string, days: string[]): string {
-  const last = history(state).find((w) => w.planId === planId);
-  const index = last ? days.indexOf(last.dayId) : -1;
-  return days[(index + 1) % days.length];
-}
-
-/** From `next` on, in the plan's order, the first day not yet done in the week. */
-export function nextOpenDay(next: string, days: string[], done: string[]): string | undefined {
-  const from = Math.max(days.indexOf(next), 0);
-  return [...days.slice(from), ...days.slice(0, from)].find((d) => !done.includes(d));
+/**
+ * The week a workout belongs to: the calendar week of its day, counted from its plan's start.
+ * Its `week` is the prescription it followed, which can differ.
+ */
+export function weekOf(state: State, workout: Workout): number {
+  const start = workout.planId && state.preferences.planStarts[workout.planId];
+  return start ? currentWeek(start, new Date(workout.startedAt), Infinity) : workout.week;
 }
 
 /** The plan's days done in a week, with the workout that did each: the latest, if done twice. */
 export function doneInWeek(state: State, planId: string, week: number): Record<string, Workout> {
   const done: Record<string, Workout> = {};
   for (const w of [...history(state)].reverse()) {
-    if (w.planId === planId && w.week === week) done[w.dayId] = w;
+    if (w.planId === planId && weekOf(state, w) === week) done[w.dayId] = w;
   }
   return done;
 }
 
-/** The first week whose days are not all done: after a complete week, the next one starts. */
-export function firstOpenWeek(state: State, planId: string, days: string[], weekCount: number): number {
-  let week = 1;
-  while (week < weekCount && days.every((d) => doneInWeek(state, planId, week)[d])) week++;
-  return week;
+/**
+ * The day to do next in a week: in the plan's order, the first one not yet done there, starting
+ * after the week's latest workout, or from the first day if the week has none. None once the
+ * week is complete.
+ */
+export function suggestedDay(state: State, planId: string, days: string[], week: number): string | undefined {
+  const done = doneInWeek(state, planId, week);
+  const latest = history(state).find((w) => w.planId === planId && weekOf(state, w) === week);
+  const from = latest ? days.indexOf(latest.dayId) + 1 : 0;
+  return [...days.slice(from), ...days.slice(0, from)].find((d) => !done[d]);
 }
 
 // Sync

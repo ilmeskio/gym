@@ -383,10 +383,20 @@ describe('findAnimations', () => {
 });
 
 describe('currentWeek', () => {
-  it('counts weeks from the start date', () => {
-    expect(currentWeek('2026-10-23', new Date('2026-10-23T08:00'), 7)).toBe(1);
-    expect(currentWeek('2026-10-23', new Date('2026-10-29T20:00'), 7)).toBe(1);
-    expect(currentWeek('2026-10-23', new Date('2026-10-30T08:00'), 7)).toBe(2);
+  it('counts calendar weeks, Monday to Sunday, from the start date', () => {
+    // 2026-10-27 is a Tuesday: its week ends on Sunday 2026-11-01.
+    expect(currentWeek('2026-10-27', new Date('2026-10-27T08:00'), 7)).toBe(1);
+    expect(currentWeek('2026-10-27', new Date('2026-11-01T23:00'), 7)).toBe(1);
+    expect(currentWeek('2026-10-27', new Date('2026-11-02T08:00'), 7)).toBe(2);
+    expect(currentWeek('2026-10-27', new Date('2026-11-09T08:00'), 7)).toBe(3);
+  });
+
+  it('starts week 2 the Monday after a Sunday start', () => {
+    expect(currentWeek('2026-11-01', new Date('2026-11-02T08:00'), 7)).toBe(2);
+  });
+
+  it('counts across a daylight saving change', () => {
+    expect(currentWeek('2026-10-19', new Date('2026-10-26T08:00'), 7)).toBe(2);
   });
 
   it('stays within the plan', () => {

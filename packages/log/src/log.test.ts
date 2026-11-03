@@ -7,15 +7,12 @@ import {
   editSet,
   emptyState,
   finishWorkout,
-  firstOpenWeek,
   fromStorage,
   history,
   lastTime,
   logSet,
   mergeFromServer,
   moveToExercise,
-  nextDay,
-  nextOpenDay,
   removeSet,
   removeWorkout,
   repMaxIn,
@@ -23,6 +20,8 @@ import {
   setsOf,
   setStartDate,
   startWorkout,
+  suggestedDay,
+  weekOf,
   workoutEnd,
   workoutInProgress,
   type State,
@@ -90,63 +89,60 @@ describe('workout', () => {
   });
 });
 
-describe('nextDay', () => {
-  const days = ['A', 'B', 'C'];
-
-  it('suggests the day after the latest finished workout, wrapping to the first', () => {
-    let s = emptyState();
-    expect(nextDay(s, 'p1', days)).toBe('A');
-    s = finishWorkout(start(s, 'w1', 'A', '2026-10-23T18:00:00Z'), 'w1', { at: '2026-10-23T19:00:00Z', effort: 3 });
-    expect(nextDay(s, 'p1', days)).toBe('B');
-    s = finishWorkout(start(s, 'w2', 'C', '2026-10-25T18:00:00Z'), 'w2', { at: '2026-10-25T19:00:00Z', effort: 3 });
-    expect(nextDay(s, 'p1', days)).toBe('A');
-  });
-
-  it('starts a new plan from its first day', () => {
-    const s = finishWorkout(start(emptyState(), 'w1', 'A', '2026-10-23T18:00:00Z', 'old'), 'w1', {
-      at: '2026-10-23T19:00:00Z',
-      effort: 3,
-    });
-    expect(nextDay(s, 'new', days)).toBe('A');
-  });
-});
-
 describe('weeks done', () => {
   const days = ['A', 'B', 'C'];
+  // `week` is the prescription followed; the week a workout belongs to comes from its date.
   const done = (state: State, id: string, dayId: string, week: number, at: string, planId = 'p1') =>
     finishWorkout(startWorkout(state, { id, planId, dayId, week, at }), id, { at, effort: 3 });
+  // Started on Thursday 22 October (W43): W44 is week 2, W45 week 3. C and the second B were
+  // saved with the week of 7-day blocks from the start, before weeks followed the calendar.
+  const history = () => {
+    let s = setStartDate(emptyState(), 'p1', '2026-10-22');
+    s = done(s, 'w1', 'A', 1, '2026-10-22T16:00:00Z');
+    s = done(s, 'w2', 'B', 1, '2026-10-24T09:51:00Z');
+    s = done(s, 'w3', 'C', 1, '2026-10-27T17:24:00Z');
+    s = done(s, 'w4', 'A', 2, '2026-10-29T09:42:00Z');
+    return done(s, 'w5', 'B', 2, '2026-11-02T17:25:00Z');
+  };
 
-  it("tells which of the week's days are done", () => {
-    let s = done(emptyState(), 'w1', 'A', 1, '2026-10-22T18:00:00Z');
-    s = done(s, 'w2', 'B', 1, '2026-10-24T11:00:00Z');
-    s = done(s, 'w3', 'A', 2, '2026-10-29T18:00:00Z');
-    s = done(s, 'w4', 'C', 1, '2026-10-20T18:00:00Z', 'old');
-    s = startWorkout(s, { id: 'w5', planId: 'p1', dayId: 'C', week: 1, at: '2026-10-27T18:00:00Z' });
+  it('puts each workout in the calendar week of its day', () => {
+    const s = history();
+    expect(weekOf(s, s.workouts.w3)).toBe(2);
+    expect(weekOf(s, s.workouts.w5)).toBe(3);
     expect(Object.keys(doneInWeek(s, 'p1', 1)).sort()).toEqual(['A', 'B']);
-    expect(doneInWeek(s, 'p1', 1).A.id).toBe('w1');
-    expect(Object.keys(doneInWeek(s, 'p1', 2))).toEqual(['A']);
+    expect(Object.keys(doneInWeek(s, 'p1', 2)).sort()).toEqual(['A', 'C']);
+    expect(Object.keys(doneInWeek(s, 'p1', 3))).toEqual(['B']);
   });
 
-  it('moves on to the next week once every day of a week is done', () => {
-    let s = emptyState();
-    expect(firstOpenWeek(s, 'p1', days, 7)).toBe(1);
-    s = done(s, 'w1', 'A', 1, '2026-10-22T18:00:00Z');
-    s = done(s, 'w2', 'B', 1, '2026-10-24T11:00:00Z');
-    expect(firstOpenWeek(s, 'p1', days, 7)).toBe(1);
-    s = done(s, 'w3', 'C', 1, '2026-10-27T18:00:00Z');
-    expect(firstOpenWeek(s, 'p1', days, 7)).toBe(2);
-    expect(firstOpenWeek(s, 'other', days, 7)).toBe(1);
-    expect(firstOpenWeek(s, 'p1', days, 1)).toBe(1);
+  it("counts only finished workouts of the plan, the latest if a day is done twice", () => {
+    let s = done(history(), 'w6', 'A', 1, '2026-10-23T18:00:00Z');
+    s = done(s, 'w7', 'C', 1, '2026-10-20T18:00:00Z', 'old');
+    s = startWorkout(s, { id: 'w8', planId: 'p1', dayId: 'C', week: 1, at: '2026-10-23T19:00:00Z' });
+    expect(Object.keys(doneInWeek(s, 'p1', 1)).sort()).toEqual(['A', 'B']);
+    expect(doneInWeek(s, 'p1', 1).A.id).toBe('w6');
   });
-});
 
-describe('nextOpenDay', () => {
-  it('skips the days already done in the week, and has none when the week is complete', () => {
-    const days = ['A', 'B', 'C'];
-    expect(nextOpenDay('A', days, [])).toBe('A');
-    expect(nextOpenDay('A', days, ['A'])).toBe('B');
-    expect(nextOpenDay('C', days, ['C', 'A'])).toBe('B');
-    expect(nextOpenDay('A', days, ['A', 'B', 'C'])).toBeUndefined();
+  it("follows the order from the week's latest workout, wrapping around", () => {
+    let s = history();
+    expect(suggestedDay(s, 'p1', days, 3)).toBe('C');
+    s = done(s, 'w6', 'C', 3, '2026-11-04T18:00:00Z');
+    expect(suggestedDay(s, 'p1', days, 3)).toBe('A');
+    s = done(s, 'w7', 'A', 3, '2026-11-06T18:00:00Z');
+    expect(suggestedDay(s, 'p1', days, 3)).toBeUndefined();
+  });
+
+  it('starts from the first day in a week with nothing done', () => {
+    const s = history();
+    expect(suggestedDay(s, 'p1', days, 4)).toBe('A');
+    expect(suggestedDay(emptyState(), 'p1', days, 1)).toBe('A');
+    expect(suggestedDay(s, 'other', days, 3)).toBe('A');
+  });
+
+  it('skips the days already done in the week', () => {
+    let s = setStartDate(emptyState(), 'p1', '2026-10-19');
+    s = done(s, 'w1', 'C', 1, '2026-10-19T18:00:00Z');
+    s = done(s, 'w2', 'A', 1, '2026-10-21T18:00:00Z');
+    expect(suggestedDay(s, 'p1', days, 1)).toBe('B');
   });
 });
 
@@ -235,7 +231,7 @@ describe('workout logged later', () => {
     s = finishWorkout(s, 'past', { at: workoutEnd(w, '2026-10-23T09:00:00.000Z'), effort: 3 });
 
     expect(history(s)[0].finishedAt).toBe('2026-10-22T17:15:00.000Z');
-    expect(nextDay(s, 'p1', ['A', 'B', 'C'])).toBe('B');
+    expect(suggestedDay(s, 'p1', ['A', 'B', 'C'], 1)).toBe('B');
   });
 
   it('for a live workout the end is now', () => {

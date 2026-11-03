@@ -1,10 +1,9 @@
 import {
   activePlan,
   doneInWeek,
-  firstOpenWeek,
   lastTime,
-  nextDay,
   setsOf,
+  suggestedDay,
   workoutInProgress,
   type StoredPlan,
   type Workout,
@@ -81,16 +80,11 @@ function Content() {
   const startDate = current && state.preferences.planStarts[current.id];
   const inProgress = workoutInProgress(state);
   const newVersion = useNewVersion();
-  // The week of the workout in progress; otherwise the calendar's, or the next one once every day of a week is done.
-  const week =
-    chosenWeek ??
-    inProgress?.week ??
-    (plan && current
-      ? Math.max(
-          currentWeek(startDate, new Date(), plan.weekCount),
-          firstOpenWeek(state, current.id, plan.days.map((d) => d.id), plan.weekCount),
-        )
-      : 1);
+  // The calendar week, Monday to Sunday: a week ends on Sunday even with days left undone.
+  const thisWeek = plan ? currentWeek(startDate, new Date(), plan.weekCount) : 1;
+  // The day to do this week; only this week has one.
+  const nextUp = current && plan ? suggestedDay(state, current.id, plan.days.map((d) => d.id), thisWeek) : undefined;
+  const week = chosenWeek ?? inProgress?.week ?? thisWeek;
   const goHome = () => setScreen({ name: 'home' });
 
   const workout = screen.name === 'workout' ? state.workouts[screen.id] : undefined;
@@ -193,7 +187,7 @@ function Content() {
         <PastWorkout
           plan={plan}
           startDate={startDate}
-          suggestedDay={nextDay(state, current.id, days)}
+          suggestedDay={nextUp ?? days[0]}
           onBack={() => setScreen({ name: 'history' })}
           onConfirm={(past) => {
             // A workout logged before the plan's start moves the start to that day.
@@ -245,7 +239,7 @@ function Content() {
           week={week}
           done={doneInWeek(state, current.id, week)}
           startDate={startDate}
-          next={nextDay(state, current.id, days)}
+          suggested={week === thisWeek ? nextUp : undefined}
           inProgress={inProgress}
           sync={data.sync}
           demo={demo}

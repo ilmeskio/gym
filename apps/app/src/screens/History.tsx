@@ -1,5 +1,5 @@
 import type { State, Workout } from '@gymapp/log';
-import { history, setsOf } from '@gymapp/log';
+import { history, setsOf, weekOf } from '@gymapp/log';
 import type { Plan } from '@gymapp/plan';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
@@ -35,7 +35,7 @@ export function History({ planOf, state, onOpen, onAdd, onBack }: Props) {
           <View style={{ flex: 1, gap: space(1) }}>
             <Text style={styles.date}>{longDay(w.startedAt)}</Text>
             <Text style={styles.name}>
-              {planOf(w)?.days.find((d) => d.id === w.dayId)?.title ?? w.dayId} · settimana {w.week}
+              {planOf(w)?.days.find((d) => d.id === w.dayId)?.title ?? w.dayId} · settimana {weekOf(state, w)}
             </Text>
             <Text style={styles.muted}>
               {time(w.startedAt)} · {duration(w.startedAt, w.finishedAt!)} · {setsOf(state, w.id).length} serie
