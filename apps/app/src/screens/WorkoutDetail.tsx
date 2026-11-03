@@ -1,5 +1,5 @@
 import type { State, Workout } from '@gymapp/log';
-import { lastTime, repMaxIn, setsOf } from '@gymapp/log';
+import { lastTime, repMaxIn, setsOf, weekOf } from '@gymapp/log';
 import {
   kgFromPlan,
   partOwner,
@@ -84,7 +84,7 @@ export function WorkoutDetail({ plan, state, workout: w, onBack, onDelete }: Pro
       </Pressable>
       <Text style={styles.title}>{longDay(w.startedAt)}</Text>
       <Text style={styles.muted}>
-        {day?.title ?? w.dayId} · settimana {w.week} · {time(w.startedAt)}
+        {day?.title ?? w.dayId} · settimana {weekOf(state, w)} · {time(w.startedAt)}
         {w.finishedAt ? `–${time(w.finishedAt)} (${duration(w.startedAt, w.finishedAt)})` : ''}
       </Text>
       {w.feedback ? (

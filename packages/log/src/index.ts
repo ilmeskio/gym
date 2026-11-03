@@ -3,7 +3,7 @@
 // the row it touched; sync reads the outbox, sends the row's current version
 // (or its deletion, if it is gone) and confirms.
 
-import type { Plan } from '@gymapp/plan';
+import { currentWeek, type Plan } from '@gymapp/plan';
 
 export type Feedback = { effort: number; note?: string };
 
@@ -268,11 +268,20 @@ export function lastTime(state: State, workoutId: string, exerciseId: string) {
   return undefined;
 }
 
+/**
+ * The week a workout belongs to: the calendar week of its day, counted from its plan's start.
+ * Its `week` is the prescription it followed, which can differ.
+ */
+export function weekOf(state: State, workout: Workout): number {
+  const start = workout.planId && state.preferences.planStarts[workout.planId];
+  return start ? currentWeek(start, new Date(workout.startedAt), Infinity) : workout.week;
+}
+
 /** The plan's days done in a week, with the workout that did each: the latest, if done twice. */
 export function doneInWeek(state: State, planId: string, week: number): Record<string, Workout> {
   const done: Record<string, Workout> = {};
   for (const w of [...history(state)].reverse()) {
-    if (w.planId === planId && w.week === week) done[w.dayId] = w;
+    if (w.planId === planId && weekOf(state, w) === week) done[w.dayId] = w;
   }
   return done;
 }
@@ -284,7 +293,7 @@ export function doneInWeek(state: State, planId: string, week: number): Record<s
  */
 export function suggestedDay(state: State, planId: string, days: string[], week: number): string | undefined {
   const done = doneInWeek(state, planId, week);
-  const latest = history(state).find((w) => w.planId === planId && w.week === week);
+  const latest = history(state).find((w) => w.planId === planId && weekOf(state, w) === week);
   const from = latest ? days.indexOf(latest.dayId) + 1 : 0;
   return [...days.slice(from), ...days.slice(0, from)].find((d) => !done[d]);
 }
