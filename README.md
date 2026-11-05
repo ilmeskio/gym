@@ -158,8 +158,11 @@ spunta con la data. Da lì si può anche ricominciare da oggi o scegliere un'alt
 - Una serie al massimo seguita da serie a metà ripetizioni (`1xmax + 3 x metà rep prima serie`) conta
   tutte le serie, con il recupero dopo ognuna; le serie a metà partono dalla metà delle ripetizioni
   della prima.
-- I giri contro il tempo (`5 rep ogni 30" x 4 min`) hanno un timer che segnala l'inizio di ogni
-  giro; le ripetizioni dei giri fatti diventano una serie.
+- I giri (`5 rep ogni 30" x 4 min`) sono tanti quanti ne stanno nei minuti scritti, qui 8. Le
+  ripetizioni di un giro non hanno limite di tempo: "Fatto" le chiude e fa partire il recupero, che
+  dura per intero i secondi scritti (30"). Un segnale avvia il giro dopo, che aspetta di nuovo
+  "Fatto". Le ripetizioni dei giri segnati come fatti diventano una serie, e con quella l'esercizio
+  è finito.
 
 ## Pubblicazione
 
