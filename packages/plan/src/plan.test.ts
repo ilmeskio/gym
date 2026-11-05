@@ -122,14 +122,15 @@ describe('holdPhases', () => {
 });
 
 describe('intervalPhases', () => {
-  it('prepares, then one round every so many seconds until the minutes are over', () => {
-    const phases = intervalPhases({ reps: 5, every: 30, minutes: 2 });
+  it('prepares, then the rounds the minutes hold, with the full rest between them and none after the last', () => {
+    const phases = intervalPhases({ reps: 5, every: 30, minutes: 1.5 });
     expect(phases).toEqual([
       { kind: 'prepare', seconds: 5 },
-      { kind: 'work', seconds: 30, label: 'Giro 1 di 4: 5 ripetizioni' },
-      { kind: 'work', seconds: 30, label: 'Giro 2 di 4: 5 ripetizioni' },
-      { kind: 'work', seconds: 30, label: 'Giro 3 di 4: 5 ripetizioni' },
-      { kind: 'work', seconds: 30, label: 'Giro 4 di 4: 5 ripetizioni' },
+      { kind: 'work', seconds: 0, label: 'Giro 1 di 3: 5 ripetizioni' },
+      { kind: 'rest', seconds: 30, label: 'Prossimo: giro 2 di 3' },
+      { kind: 'work', seconds: 0, label: 'Giro 2 di 3: 5 ripetizioni' },
+      { kind: 'rest', seconds: 30, label: 'Prossimo: giro 3 di 3' },
+      { kind: 'work', seconds: 0, label: 'Giro 3 di 3: 5 ripetizioni' },
     ]);
   });
 });

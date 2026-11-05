@@ -132,16 +132,22 @@ export function holdPhases({ then }: SetsReading, seconds: number, thenSeconds =
   return phases;
 }
 
-/** The timer of rounds against the clock: preparation, then one phase per round. */
-export function intervalPhases({ reps, every, minutes }: Intervals): Phase[] {
-  const rounds = Math.floor((minutes * 60) / every);
+/** How many rounds fit in the minutes of the plan, one every so many seconds. */
+export const intervalRounds = ({ every, minutes }: Intervals) => Math.floor((minutes * 60) / every);
+
+/**
+ * The timer of rounds: preparation, then the reps of each round with no time limit (`seconds: 0`,
+ * until they are marked done) and the full rest between one round and the next.
+ */
+export function intervalPhases(intervals: Intervals): Phase[] {
+  const { reps, every } = intervals;
+  const rounds = intervalRounds(intervals);
   return [
     { kind: 'prepare', seconds: PREPARE_SECONDS },
-    ...Array.from({ length: rounds }, (_, i): Phase => ({
-      kind: 'work',
-      seconds: every,
-      label: `Giro ${i + 1} di ${rounds}: ${reps} ripetizioni`,
-    })),
+    ...Array.from({ length: rounds }, (_, i): Phase[] => [
+      ...(i > 0 ? [{ kind: 'rest', seconds: every, label: `Prossimo: giro ${i + 1} di ${rounds}` } as Phase] : []),
+      { kind: 'work', seconds: 0, label: `Giro ${i + 1} di ${rounds}: ${reps} ripetizioni` },
+    ]).flat(),
   ];
 }
 
@@ -291,7 +297,16 @@ export function todayDate(today = new Date()): string {
 }
 
 export { demos, findAnimations, gifUrl, youtubeId, youtubeSearch } from './media.ts';
-export { cuesBetween, PREPARE_SECONDS, RESUME_MARGIN_SECONDS, timerAt, timerToResume, workedSeconds } from './timer.ts';
+export {
+  cuesBetween,
+  PREPARE_SECONDS,
+  RESUME_MARGIN_SECONDS,
+  roundCues,
+  roundsAt,
+  timerAt,
+  timerToResume,
+  workedSeconds,
+} from './timer.ts';
 export type { Cue, Phase, SavedTimer, TimerState } from './timer.ts';
 export type { Demo, ExerciseMedia, Gif } from './media.ts';
 

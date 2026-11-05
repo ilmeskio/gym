@@ -4,6 +4,7 @@ import {
   demos,
   holdPhases,
   intervalPhases,
+  intervalRounds,
   kgFromPlan,
   repMaxAdvice,
   secondPartId,
@@ -21,6 +22,7 @@ import { Countdown, type Progress } from '../components/Countdown';
 import { Demo } from '../components/Demo';
 import { ExerciseVideo } from '../components/ExerciseVideo';
 import { describeSet, SetRow, type Unit } from '../components/SetRow';
+import { RoundsTimer } from '../components/RoundsTimer';
 import { Stepper } from '../components/Stepper';
 import { useData } from '../data/Data';
 import { kg as formatKg, shortDate } from '../format';
@@ -97,7 +99,9 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
   const repMaxFound = foundIn(exercise.id) && (!withReps || foundIn(withReps.id));
   const finished = findRepMax ? repMaxFound : totalSets === undefined || done.length >= totalSets;
   // Without a prescribed number of sets, sets are logged freely and you move on whenever you like.
-  const toLog = findRepMax ? !repMaxFound : totalSets === undefined || done.length < totalSets;
+  // Rounds against the clock are one block, logged as one set: once logged there is nothing left to do.
+  const blockLogged = !!sets.intervals && done.length > 0;
+  const toLog = !blockLogged && (findRepMax ? !repMaxFound : totalSets === undefined || done.length < totalSets);
   const last = done.at(-1);
 
   // Values proposed for the next set: what was done so far, then last time, then the plan.
@@ -172,8 +176,16 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
     if (sets.intervals) changeTimer({ kind: 'rounds', phases: intervalPhases(sets.intervals) });
   }
 
+  /** The reps of this round are done: the rest starts now. Saved, so a reload keeps it. */
+  function markRound(seconds: number) {
+    if (!timer) return;
+    const next = { ...timer, marks: [...(timer.marks ?? []), seconds] };
+    saveTimer(next);
+    setTimer(next);
+  }
+
   /** Rounds stopped or finished: the reps of the rounds done become one set. */
-  function endRounds({ rounds }: Progress) {
+  function endRounds(rounds: number) {
     if (rounds > 0 && sets.intervals) logSet(rounds * sets.intervals.reps);
     else changeTimer();
   }
@@ -383,12 +395,13 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
             stop={{ title: 'Stop', onStop: endHold }}
           />
         ) : timer?.kind === 'rounds' ? (
-          <Countdown
+          <RoundsTimer
             key={timer.startedAt}
             phases={timer.phases}
             startedAt={timer.startedAt}
-            onDone={endRounds}
-            stop={{ title: 'Stop', onStop: endRounds }}
+            marks={timer.marks ?? []}
+            onMark={markRound}
+            onEnd={endRounds}
           />
         ) : timer?.kind === 'rest' ? (
           <Countdown
@@ -456,7 +469,7 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
             ) : null}
             {sets.intervals && !noRest ? (
               <Button
-                title={`Avvia ${sets.intervals.minutes}' a giri da ${sets.intervals.every}" (5" per prepararti)`}
+                title={`Avvia ${intervalRounds(sets.intervals)} giri da ${sets.intervals.reps} (recupero ${sets.intervals.every}")`}
                 onPress={startRounds}
               />
             ) : null}
@@ -482,6 +495,11 @@ export function Exercise({ step, workoutId, heading, noRest, onNext, onPrevious,
               />
             ) : null}
           </>
+        ) : null}
+        {blockLogged && !timer && last ? (
+          <Text style={[styles.value, { fontSize: z.font(15), color: colors.accent }]}>
+            Giri finiti: {last.reps} ripetizioni registrate.
+          </Text>
         ) : null}
         {finished && !timer ? (
           <Button title={step.position === step.total ? 'Fine allenamento' : 'Prossimo esercizio'} onPress={onNext} />
